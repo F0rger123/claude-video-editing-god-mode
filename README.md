@@ -1,43 +1,133 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="Claude Video Editing God Mode: raw footage in, finished reels out" width="100%">
+  <img src=".github/assets/banner.svg" alt="Video God Mode: Raw footage in. Finished, approved reels out." width="100%">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Claude%20Code-plugin%20%2B%2016%20skills-7c3aed?style=for-the-badge" alt="Claude Code plugin with 16 skills">
-  <img src="https://img.shields.io/badge/Codex-mirrored-c026d3?style=for-the-badge" alt="Codex mirrored">
-  <img src="https://img.shields.io/badge/PWA-God%20Mode%20Cut-f97316?style=for-the-badge" alt="God Mode Cut PWA">
-  <img src="https://img.shields.io/badge/license-MIT-2ea44f?style=for-the-badge" alt="MIT">
+  <img src="https://img.shields.io/badge/status-public-8b5cf6?style=for-the-badge" alt="Public">
+  <img src="https://img.shields.io/badge/license-MIT-8b5cf6?style=for-the-badge" alt="License">
+  <img src="https://img.shields.io/github/last-commit/F0rger123/claude-video-editing-god-mode?style=for-the-badge&color=8b5cf6" alt="Last commit">
+  <img src="https://img.shields.io/github/repo-size/F0rger123/claude-video-editing-god-mode?style=for-the-badge&color=8b5cf6" alt="Repo size">
 </p>
 <p align="center">
-  <img src="https://img.shields.io/badge/HyperFrames-0.7-0d1117?style=flat-square" alt="HyperFrames">
-  <img src="https://img.shields.io/badge/GSAP-3.14-0d1117?style=flat-square&logo=greensock&logoColor=88ce02" alt="GSAP">
-  <img src="https://img.shields.io/badge/whisper.cpp-local-0d1117?style=flat-square" alt="whisper.cpp">
-  <img src="https://img.shields.io/badge/Next.js-16-0d1117?style=flat-square&logo=nextdotjs&logoColor=white" alt="Next.js">
-  <img src="https://img.shields.io/badge/Supabase-RLS-0d1117?style=flat-square&logo=supabase&logoColor=3ecf8e" alt="Supabase">
-  <img src="https://img.shields.io/badge/Cloudflare-Workers-0d1117?style=flat-square&logo=cloudflare&logoColor=f38020" alt="Cloudflare Workers">
+  <img src="https://img.shields.io/badge/Claude-0d1117?style=flat-square&logo=claude&logoColor=white" alt="Claude">
+  <img src="https://img.shields.io/badge/Node.js-0d1117?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js">
+  <img src="https://img.shields.io/badge/HTML5-0d1117?style=flat-square&logo=html5&logoColor=white" alt="HTML5">
+  <img src="https://img.shields.io/badge/JavaScript-0d1117?style=flat-square&logo=javascript&logoColor=white" alt="JavaScript">
+  <img src="https://img.shields.io/badge/Next.js-0d1117?style=flat-square&logo=nextdotjs&logoColor=white" alt="Next.js">
+  <img src="https://img.shields.io/badge/React-0d1117?style=flat-square&logo=react&logoColor=white" alt="React">
+  <img src="https://img.shields.io/badge/TypeScript-0d1117?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Supabase-0d1117?style=flat-square&logo=supabase&logoColor=white" alt="Supabase">
+  <img src="https://img.shields.io/badge/Cloudflare-0d1117?style=flat-square&logo=cloudflare&logoColor=white" alt="Cloudflare">
+  <img src="https://img.shields.io/badge/Buffer-0d1117?style=flat-square&logo=buffer&logoColor=white" alt="Buffer">
+  <img src="https://img.shields.io/badge/Playwright-0d1117?style=flat-square&logo=playwright&logoColor=white" alt="Playwright">
 </p>
 
 <h3 align="center">Claude edits your videos. Your clients upload from their phone, approve the cut, and it posts itself.</h3>
 
 <p align="center">
-  <a href="#-quick-start">Quick start</a> ·
-  <a href="#-what-you-get">What you get</a> ·
-  <a href="#-the-skills">Skills</a> ·
-  <a href="#-god-mode-cut-the-phone-app">Phone app</a> ·
-  <a href="#-how-it-fits-together">Architecture</a> ·
-  <a href="#-teach-it-your-taste">Your taste</a> ·
-  <a href="#-part-of-claude-business-god-mode">Business God Mode</a>
+  <a href="#01--what-it-does">What it does</a> ·
+  <a href="#02--screenshots">Screenshots</a> ·
+  <a href="#03--how-an-edit-happens">How an edit happens</a> ·
+  <a href="#04--the-life-of-a-client-video">The life of a client video</a> ·
+  <a href="#05--part-of-claude-business-god-mode">Part of Claude Business God Mode</a> ·
+  <a href="#06--what-its-written-in">What it's written in</a> ·
+  <a href="#field-manual">Field manual</a> ·
+  <a href="#license">License</a>
 </p>
 
----
+<p align="center"><img src=".github/assets/divider.svg" width="100%" alt=""></p>
 
-> [!IMPORTANT]
-> **AI agents (Claude, Codex, Cursor, Gemini): start here.** If someone pasted this link and asked you to set it up:
-> 1. Read [`.claude/skills/video-editing-god-mode/SKILL.md`](.claude/skills/video-editing-god-mode/SKILL.md) (the hub) and [`CLAUDE.md`](CLAUDE.md) (workspace rules).
-> 2. Ask two things only: *what do you want to make* (reel, Short, long-form, showreel) and *do you want the phone app too*.
-> 3. Run the [Quick start](#-quick-start), then `npm run demo` to prove the render path works before touching real footage.
->
-> Never ask for or print API keys. They go in `.env`, which Git ignores.
+
+> [!TIP]
+> **🤖 Pasted this link into Claude or ChatGPT?** AI assistants: read [`docs/AI_GUIDE.md`](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/docs/AI_GUIDE.md) first. It explains what this is in plain words, which questions to ask, and how to set it up step by step. Plain-text index: [`llms.txt`](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/llms.txt).
+
+## 01 · What it does
+
+**Claude Video Editing God Mode** turns Claude Code into a video editor. Hand it raw footage and it cuts the dead air and fumbled lines, adds captions and motion graphics, checks every frame and renders a finished reel, Short or long-form video, all on your own computer. **God Mode Cut**, the phone app in `app/`, adds the client side: uploads, approvals, review and scheduled posting.
+
+| | |
+|---|---|
+| **16 editing skills** | Reels, Shorts, long-form, silence and mistake cutting, story planning, motion beats, showreels, website-to-video. Mirrored for Codex. |
+| **406 motion-graphics cards** | Two ready-made style packs with editable text slots, plus whole-scene templates |
+| **Free local pipeline** | Transcription, cutting and rendering run on your machine. No paid API needed. |
+| **Hands-off editing** | Drop clips in an inbox folder; Claude returns 1 to 6 options and learns from your Yes / Maybe / No ratings |
+| **God Mode Cut phone app** | Clients install it from your site, upload from the camera roll, review versions and approve. White-label. |
+| **Your taste, locked in** | A brand profile holds your caption look, reference reels and ratings, so every edit matches |
+
+**Quick start**
+
+```bash
+git clone https://github.com/F0rger123/claude-video-editing-god-mode.git
+cd claude-video-editing-god-mode
+npm install
+npm run setup        # checks Node 22+, FFmpeg, Chrome and the renderer
+npm run demo         # renders a starter video, no footage or API key needed
+```
+
+Then open the folder in Claude Code and say: *"Edit raw/my-clip.mp4 into a 30-second Instagram reel with captions."*
+
+## 02 · Screenshots
+
+<p align="center">
+  <img src="assets/app-login.png" alt="God Mode Cut sign-in screen" width="260">
+  &nbsp;&nbsp;
+  <img src="assets/app-install.png" alt="God Mode Cut install guide" width="260">
+</p>
+<p align="center"><sub>God Mode Cut on a phone: sign in, then add it to the home screen. No app store.</sub></p>
+
+## 03 · How an edit happens
+
+```mermaid
+flowchart LR
+    A["You drop in<br/>raw footage"] --> B["Speech is turned<br/>into text"]
+    B --> C["Silences and<br/>fumbles are cut"]
+    C --> D["Captions and motion<br/>graphics are added"]
+    D --> E{"Every frame<br/>checked"}
+    E -->|problem found| D
+    E -->|looks right| F["Finished video<br/>is rendered"]
+    F --> G["You rate it<br/>Yes, Maybe or No"]
+    G -.->|next edit learns| C
+```
+
+## 04 · The life of a client video
+
+```mermaid
+flowchart LR
+    A["Client uploads clips<br/>from their phone"] --> B{"Needs your OK<br/>first?"}
+    B -->|yes| C["Waits for<br/>your approval"] --> D
+    B -->|no| D["Your editing computer<br/>picks up the job"]
+    D --> E["Claude makes<br/>a few options"]
+    E --> F["Client reviews<br/>the cut"]
+    F -->|asks for changes| D
+    F -->|approves| G["Scheduled to post"] --> H["Published on<br/>Instagram, TikTok, YouTube"]
+```
+
+## 05 · Part of Claude Business God Mode
+
+<table>
+<tr>
+<td align="center" width="25%"><b>👑 Business God Mode</b><br><sub>the umbrella: run a whole business with Claude · coming soon</sub></td>
+<td align="center" width="25%"><a href="https://github.com/F0rger123/claude-meta-ads-god-mode"><b>📣 Meta Ads God Mode</b></a><br><sub>paid media, paused-first, approval-gated</sub></td>
+<td align="center" width="25%"><a href="https://github.com/F0rger123/CLAUDE-SEO-GOD-MODE"><b>🔎 SEO God Mode</b></a><br><sub>audits, local SEO, GSC, AI search</sub></td>
+<td align="center" width="25%"><b>📇 Ultimate CRM Template</b><br><sub>leads, jobs, invoices, SMS, AI assistant · coming soon</sub></td>
+</tr>
+</table>
+
+## 06 · What it's written in
+
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'pie1':'#8b5cf6','pie2':'#f97316','pie3':'#64748b','pie4':'#94a3b8','pie5':'#475569','pie6':'#cbd5e1','pie7':'#334155','pieStrokeColor':'#0d1117','pieOuterStrokeColor':'#0d1117','pieTitleTextColor':'#8b949e','pieLegendTextColor':'#8b949e','pieSectionTextColor':'#0d1117'}}}%%
+pie title Share of the code, by language
+    "HTML" : 73.8
+    "TypeScript" : 13.5
+    "JavaScript" : 9.1
+    "PLpgSQL" : 1.8
+    "Other" : 1.8
+```
+
+<p align="center"><img src=".github/assets/divider.svg" width="100%" alt=""></p>
+
+## Field manual
 
 ## ⚡ Quick start
 
@@ -92,13 +182,7 @@ Edit raw/my-clip.mp4 into a 30-second Instagram reel. Hook in the first second, 
 | [`hyperframes`](.claude/skills/hyperframes/SKILL.md) · [`hyperframes-cli`](.claude/skills/hyperframes-cli/SKILL.md) · [`hyperframes-registry`](.claude/skills/hyperframes-registry/SKILL.md) · [`gsap`](.claude/skills/gsap/SKILL.md) | Write, lint, preview and render HTML video compositions |
 | [`short-form-video`](.claude/skills/short-form-video/SKILL.md) | Maintain the legacy teaching compositions |
 
-## 📱 God Mode Cut: the phone app
-
-<p align="center">
-  <img src="assets/app-login.png" alt="God Mode Cut sign-in screen" width="260">
-  &nbsp;&nbsp;
-  <img src="assets/app-install.png" alt="God Mode Cut install guide" width="260">
-</p>
+## 📱 God Mode Cut: the phone app (details)
 
 Clients install it from your website (no app store), drop raw clips from the camera roll, and approve the finished
 cut. You see every job in one inbox.
@@ -118,38 +202,6 @@ cp .env.example .env.local     # Supabase URL + anon key, service role key, CRON
 npm run dev
 ```
 
-## 🗺 How it fits together
-
-```mermaid
-flowchart LR
-    Phone(["📱 God Mode Cut PWA"]) --> App["Next.js on<br/>Cloudflare Workers"]
-    App <--> SB[("Supabase<br/>Postgres + RLS · Auth · Storage")]
-    App <--> Buffer["Buffer<br/>scheduling"]
-    subgraph PC["🖥 Editing PC (this repo)"]
-        Bridge["app/bridge"] --> Inbox["Inbox folder"]
-        Inbox --> Runner["scripts/drive-inbox.mjs"]
-        Runner --> Claude["claude -p + skills"]
-        Claude --> HF["HyperFrames render<br/>FFmpeg · whisper.cpp"]
-    end
-    Bridge <-- service role --> SB
-    HF -- options A..F --> Bridge
-```
-
-```mermaid
-stateDiagram-v2
-    direction LR
-    [*] --> Uploaded: client uploads clips
-    Uploaded --> PendingApproval: gate rules
-    PendingApproval --> Editing: approved
-    Uploaded --> Editing: full-auto
-    Editing --> Review: bridge returns options
-    Review --> Editing: changes requested
-    Review --> Approved: client approves
-    Approved --> Scheduled: Buffer
-    Scheduled --> Published
-    Published --> [*]
-```
-
 ## 🎨 Teach it your taste
 
 1. `cp -r brands/example-brand raw-media/styles/<your-brand>` and edit `inspiration.md` with 3 to 7 reels you love.
@@ -167,17 +219,6 @@ Nothing paid is required. Optional keys (`.env`, see [`docs/TOOLS-AND-API-KEYS.m
 ElevenLabs Scribe or OpenAI Whisper for cloud transcription, Kie.ai or Gemini for generated assets,
 `ANTHROPIC_API_KEY` in the app for server-side caption regeneration.
 
-## 🧭 Part of Claude Business God Mode
-
-<table>
-<tr>
-<td align="center" width="25%"><a href="https://github.com/F0rger123/claude-business-god-mode"><b>👑 Business God Mode</b></a><br><sub>the umbrella: run a whole business with Claude</sub></td>
-<td align="center" width="25%"><a href="https://github.com/F0rger123/claude-meta-ads-god-mode"><b>📣 Meta Ads God Mode</b></a><br><sub>paid media, paused-first, approval-gated</sub></td>
-<td align="center" width="25%"><a href="https://github.com/F0rger123/CLAUDE-SEO-GOD-MODE"><b>🔎 SEO God Mode</b></a><br><sub>audits, local SEO, GSC, AI search</sub></td>
-<td align="center" width="25%"><a href="https://github.com/F0rger123/ultimate-crm-template"><b>📇 Ultimate CRM Template</b></a><br><sub>leads, jobs, invoices, SMS, AI assistant</sub></td>
-</tr>
-</table>
-
 ## 📜 Credits and license
 
 MIT. Built on the [Herk Edit Kit](https://github.com/nateherkai/herk-edit-kit) by Nate Herk (MIT, plus the
@@ -186,3 +227,13 @@ pipeline grant in [`licenses/PIPELINE-USE-PERMISSION.txt`](licenses/PIPELINE-USE
 See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md). GSAP keeps its own license. Style names such as Vox and
 Kallaway are aesthetic references only, not endorsements. Teaching example videos from the original kit are not
 included; get them from the upstream repository.
+
+## License
+
+Released under the [MIT License](LICENSE). Use it, fork it, ship it.
+
+<p align="center"><img src=".github/assets/divider.svg" width="100%" alt=""></p>
+
+<p align="center">
+  <sub>Built by <a href="https://github.com/F0rger123"><b>@F0rger123</b></a> · MIT licensed</sub>
+</p>

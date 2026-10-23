@@ -1,0 +1,15 @@
+# claude-video-editing-god-mode
+
+> A video-editing kit for Claude Code. You give it raw footage and it cuts out silences and mistakes, adds captions and motion graphics, and renders a finished reel, Short or long-form video on your own computer. It also includes God Mode Cut, a phone app where clients upload clips, approve edits and get videos scheduled to social media.
+
+If a person shared this repository with you, read the AI guide first.
+
+## Start here
+- [AI guide](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/docs/AI_GUIDE.md): what it is, what to ask, setup steps, how to use it
+- [README](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/README.md)
+- [Hub skill (start here)](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/.claude/skills/video-editing-god-mode/SKILL.md)
+- [Setup and troubleshooting](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/docs/SETUP.md)
+- [A complete edit, step by step](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/docs/WORKFLOW.md)
+- [Tools, accounts and API keys](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/docs/TOOLS-AND-API-KEYS.md)
+- [Editing house style](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/docs/EDITING-PLAYBOOK.md)
+- [Deploying the phone app](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/app/docs/DEPLOYMENT.md)
