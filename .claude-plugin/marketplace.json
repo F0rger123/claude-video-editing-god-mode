@@ -1,0 +1,14 @@
+{
+  "name": "claude-video-editing-god-mode",
+  "owner": { "name": "F0rger123", "url": "https://github.com/F0rger123" },
+  "metadata": { "description": "Claude Video Editing God Mode: AI video editing skills for Claude Code." },
+  "plugins": [
+    {
+      "name": "video-editing-god-mode",
+      "source": "./",
+      "description": "16 video editing skills for Claude Code: reels, Shorts, long-form, motion graphics, captions, HyperFrames.",
+      "version": "1.0.0",
+      "license": "MIT"
+    }
+  ]
+}

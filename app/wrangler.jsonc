@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "god-mode-cut",
+  "account_id": "a87e2144ddbf7e83a010fbfd671e6d08",
+  // worker.ts wraps the OpenNext worker and adds the cron handler (Buffer scheduling + status tracking).
+  "main": "worker.ts",
+  "compatibility_date": "2026-09-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  // No Worker cron: the free plan allows 5 per account and they are in use. The editing-PC bridge
+  // calls /api/cron/tick on every 5-minute pass instead. Re-add "triggers": { "crons": ["*/5 * * * *"] }
+  // on Workers Paid if the background pass must run while the PC is off.
+  // Run the Worker next to the database (Supabase, us-west-2) instead of next to the phone: every page
+  // makes several database calls, so this cuts most of the waiting.
+  "placement": { "mode": "smart" },
+  "observability": {
+    "enabled": true
+  }
+}

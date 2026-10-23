@@ -1,0 +1,14 @@
+/* ---------- Caption preview: DepCy50P-Wd style ---------- */
+@font-face { font-family: "Inter"; src: url("assets/fonts/Inter-VF.ttf"); font-weight: 100 900; }
+@font-face { font-family: "Playfair"; src: url("assets/fonts/PlayfairDisplay-Italic-VF.ttf"); font-weight: 400 900; font-style: italic; }
+.cap { --cap: #111418; --capkw: #1E6FFF; --capdim: 0.28; }
+.cap .in { padding: 0; border-radius: 0; background: none; font-family: "Inter", sans-serif; font-weight: 700; font-size: 84px;
+  letter-spacing: -2.5px; line-height: 1.05; color: var(--cap); text-shadow: var(--capshadow, none); }
+.cap .w { display: inline-block; opacity: var(--capdim); }
+.cap .w.kw { font-family: "Playfair", serif; font-style: italic; font-weight: 700; letter-spacing: -1px; font-size: 92px; color: var(--capkw); }
+.hooktitle { font-family: "Inter", sans-serif; font-size: 96px; line-height: 1.1; letter-spacing: -3px; font-weight: 700; text-shadow: none; }
+.hooktitle .l1 { color: #fff; text-shadow: 0 4px 24px rgba(0,0,0,0.55); }
+.hooktitle .l2 { display: inline-block; margin-top: 8px; padding: 2px 34px 14px; background: #1877F2; color: #fff; border-radius: 6px;
+  font-family: "Playfair", serif; font-style: italic; font-weight: 700; font-size: 104px; letter-spacing: -1px; }
+.ttl .t1 { font-family: "Inter", sans-serif; font-weight: 700; letter-spacing: -2.5px; }
+.ttl .t2 { font-family: "Playfair", serif; font-style: italic; font-weight: 700; border-radius: 6px; background: #1877F2; }
