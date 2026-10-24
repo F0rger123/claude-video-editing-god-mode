@@ -106,10 +106,10 @@ flowchart LR
 
 <table>
 <tr>
-<td align="center" width="25%"><b>👑 Business God Mode</b><br><sub>the umbrella: run a whole business with Claude · coming soon</sub></td>
+<td align="center" width="25%"><a href="https://github.com/F0rger123/claude-business-god-mode"><b>👑 Business God Mode</b></a><br><sub>the umbrella: run a whole business with Claude</sub></td>
 <td align="center" width="25%"><a href="https://github.com/F0rger123/claude-meta-ads-god-mode"><b>📣 Meta Ads God Mode</b></a><br><sub>paid media, paused-first, approval-gated</sub></td>
 <td align="center" width="25%"><a href="https://github.com/F0rger123/CLAUDE-SEO-GOD-MODE"><b>🔎 SEO God Mode</b></a><br><sub>audits, local SEO, GSC, AI search</sub></td>
-<td align="center" width="25%"><b>📇 Ultimate CRM Template</b><br><sub>leads, jobs, invoices, SMS, AI assistant · coming soon</sub></td>
+<td align="center" width="25%"><a href="https://github.com/F0rger123/ultimate-crm-template"><b>📇 Ultimate CRM Template</b></a><br><sub>leads, jobs, invoices, SMS, AI assistant</sub></td>
 </tr>
 </table>
 
