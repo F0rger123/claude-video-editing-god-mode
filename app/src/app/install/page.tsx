@@ -1,5 +1,5 @@
 import { AGENCY_NAME, APP_SHORT_NAME } from "@/lib/brand";
-import Link from "next/link";
+import Link from "@/components/link";
 import { InstallGuide } from "./install-guide";
 
 export const metadata = { title: "Install the app", robots: { index: false, follow: false } };

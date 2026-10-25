@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
 import { signedViewUrls } from "@/lib/integrations/storage";
@@ -6,6 +6,7 @@ import { listWorkspaces } from "@/lib/data";
 import { ActionForm, SubmitButton } from "@/components/form";
 import { EmptyState, PageHeader } from "@/components/ui";
 import { LibraryAdd } from "./library-add";
+import { OpenverseSearch } from "./openverse-search";
 import { Disclosure } from "@/components/disclosure";
 import { updateLibraryItem } from "./actions";
 
@@ -43,11 +44,14 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
         ))}
       </nav>
 
+      <div className="mb-3">
+        <OpenverseSearch key={kind} defaultKind={kind} />
+      </div>
       <Disclosure label="+ Add to library" initiallyOpen={!(items ?? []).length}>
         <LibraryAdd workspaces={workspaces.map((w) => ({ id: w.id, name: w.name }))} defaultKind={kind} />
       </Disclosure>
 
-      <ul className="mt-6 grid gap-2">
+      <ul className="mt-6 grid grid-cols-1 gap-2">
         {(items ?? []).map((i) => {
           const src = i.storage_path ? urls.get(i.storage_path) : null;
           return (

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/link";
 import type { ReactNode } from "react";
 import { JOB_STATUS_LABEL, PLATFORM_LABEL, type JobStatus, type Platform } from "@/lib/domain/types";
 import { statusTone } from "@/lib/domain/status";

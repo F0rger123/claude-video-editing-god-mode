@@ -96,10 +96,30 @@ export async function requestContentIdeas(_: { error?: string; success?: string;
     if (error) return { error: cleanError(error.message) };
     requestId = data as string;
   }
-  const done = await writeRequestOnServer(createAdminClient(), requestId).catch(() => false);
+  // Instant: a plain request is filled from the ideas the editing PC wrote ahead of time.
+  const fromPool = !topic && style === "Claude picks" ? await claimPool(requestId, workspaceId, form) : 0;
+  const done = fromPool ? true : await writeRequestOnServer(createAdminClient(), requestId).catch(() => false);
   revalidatePath("/scripts");
   revalidatePath("/portal/[slug]/scripts", "page");
   return { requestId, success: done ? "Ideas are ready." : "Claude is writing them. This usually takes about a minute." };
+}
+
+/**
+ * Hands out ready-made ideas (status 'pool') for this request. All of them → the request is done at
+ * once; some → the request asks the PC only for the rest. Returns how many were handed out.
+ */
+async function claimPool(requestId: string, workspaceId: string, form: "short" | "long"): Promise<number> {
+  const admin = createAdminClient();
+  const { data: req } = await admin.from("content_idea_requests").select("count").eq("id", requestId).single();
+  const want = req?.count ?? 5;
+  const { data: pool } = await admin.from("content_script_ideas").select("id").eq("workspace_id", workspaceId).eq("form", form).eq("status", "pool").order("created_at").limit(want);
+  const ids = (pool ?? []).map((p) => p.id);
+  if (!ids.length) return 0;
+  const { data: moved } = await admin.from("content_script_ideas").update({ status: "new", request_id: requestId, created_at: new Date().toISOString() }).in("id", ids).eq("status", "pool").select("id");
+  const got = moved?.length ?? 0;
+  if (got >= want) await admin.from("content_idea_requests").update({ status: "done", finished_at: new Date().toISOString() }).eq("id", requestId);
+  else if (got) await admin.from("content_idea_requests").update({ count: want - got }).eq("id", requestId);
+  return got;
 }
 
 /** Polled by the page while a request is being written. RLS limits it to visible requests. */

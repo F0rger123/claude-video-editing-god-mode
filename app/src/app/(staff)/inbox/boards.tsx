@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/link";
 import { useActionState, useMemo, useState } from "react";
 import { MediaThumb } from "@/components/media-thumb";
 import { Sheet } from "@/components/sheet";

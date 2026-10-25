@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/link";
 import type { ReactNode } from "react";
 import { Icon } from "@/components/icons";
 import { PlatformTag, PostPill } from "@/components/ui";

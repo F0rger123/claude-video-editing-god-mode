@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { getUserClient, cleanError } from "@/lib/actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { paths, signedUploadUrl, objectExists, assertPathInWorkspace } from "@/lib/integrations/storage";
-import { intakeJob } from "@/lib/workflow";
+import { approveForEditing, intakeJob } from "@/lib/workflow";
+import { captionPreset } from "@/lib/domain/caption-presets";
 import { MEDIA_KINDS, PLATFORMS, type MediaKind, type PostTiming, type StyleChoices } from "@/lib/domain/types";
 
 /**
@@ -28,8 +29,12 @@ export type UploadSpec = {
     priority?: string;
     dueDate?: string | null;
     requireReview?: boolean;
-    styleChoices?: StyleChoices;
+    styleChoices?: StyleChoices & { caption_preset_id?: string };
     scriptId?: string | null;
+    projectId?: string | null;
+    useBrandKit?: boolean;
+    /** Quick edit (staff): just edit this video, no posting. */
+    quick?: boolean;
     postTiming?: PostTiming | null;
     postAt?: string | null; // ISO
   };
@@ -88,11 +93,29 @@ export async function prepareUpload(spec: UploadSpec): Promise<PreparedUpload> {
         else if (v && (presets ?? []).some((p) => p.id === v && p.kind === k)) choices[k] = v;
       }
       if (spec.job.styleChoices.notes) choices.notes = spec.job.styleChoices.notes.slice(0, 1000);
+      const preset = captionPreset((spec.job.styleChoices as { caption_preset_id?: string }).caption_preset_id);
+      if (preset) choices.caption_preset = { id: preset.id, name: preset.name, instruction: preset.instruction };
+      if (typeof spec.job.styleChoices.voice_polish === "boolean") choices.voice_polish = spec.job.styleChoices.voice_polish;
+      if (typeof spec.job.styleChoices.face_track === "boolean") choices.face_track = spec.job.styleChoices.face_track;
+      const colors = (spec.job.styleChoices.colors ?? []).filter((c) => /^#[0-9a-f]{6}$/i.test(c)).map((c) => c.toLowerCase()).slice(0, 8);
+      if (colors.length) choices.colors = colors;
+      // Another workspace's brand kit (staff only, and only one this user can see).
+      const from = spec.job.styleChoices.brand_from;
+      if (auth.isStaff && from && /^[0-9a-f-]{36}$/i.test(from)) {
+        const { data: kitWs } = await auth.supabase.from("content_workspaces").select("id").eq("id", from).maybeSingle();
+        if (kitWs) choices.brand_from = kitWs.id;
+      }
       const wanted = (spec.job.styleChoices.materials ?? []).filter((m) => /^[0-9a-f-]{36}$/i.test(m)).slice(0, 30);
       if (wanted.length && auth.isStaff) {
         const { data: items } = await auth.supabase.from("content_library").select("id, workspace_id").in("id", wanted).is("archived_at", null);
         choices.materials = (items ?? []).filter((i) => !i.workspace_id || i.workspace_id === spec.workspaceId).map((i) => i.id);
       }
+    }
+    // A project must belong to the same client (RLS: clients only see their own projects).
+    let projectId: string | null = null;
+    if (spec.job?.projectId && /^[0-9a-f-]{36}$/i.test(spec.job.projectId)) {
+      const { data: project } = await auth.supabase.from("content_projects").select("id, workspace_id").eq("id", spec.job.projectId).maybeSingle();
+      if (project?.workspace_id === spec.workspaceId) projectId = project.id;
     }
     let scriptId: string | null = null;
     if (spec.job?.scriptId) {
@@ -128,12 +151,15 @@ export async function prepareUpload(spec: UploadSpec): Promise<PreparedUpload> {
           source: auth.isStaff ? "agency" : "client",
           created_by: auth.userId,
           needs_attention: Boolean(spec.job?.requireReview),
+          category: auth.isStaff && spec.job?.quick ? "Quick edit" : null,
           attention_reason: spec.job?.requireReview ? "Marked for manual review." : null,
           style_choices: choices,
           script_id: scriptId,
+          project_id: projectId,
+          use_brand_kit: spec.job?.useBrandKit !== false,
           post_timing: timing,
           post_at: postAt,
-          auto_post: spec.job?.requireReview ? false : null,
+          auto_post: spec.job?.requireReview || (auth.isStaff && spec.job?.quick) ? false : null,
         })
         .select("id")
         .single();
@@ -210,6 +236,12 @@ export async function completeUpload(input: { workspaceId: string; jobId: string
       const r = await intakeJob(admin, input.jobId, { id: auth.userId, label: auth.isStaff ? "agency" : "client" });
       status = r.next;
       reasons = r.reasons;
+      // "Edit it" from Quick edit (staff only): start now, even when the workspace normally waits for approval.
+      if (input.startNow && auth.isStaff && status === "pending_approval") {
+        await approveForEditing(admin, input.jobId, { id: auth.userId, label: "agency" }, { allowOverage: true, isOwner: true });
+        status = "queued";
+        reasons = [];
+      }
     } else status = job.status;
   } else if (!auth.isStaff) {
     const { data: ws } = await admin.from("content_workspaces").select("name").eq("id", input.workspaceId).single();

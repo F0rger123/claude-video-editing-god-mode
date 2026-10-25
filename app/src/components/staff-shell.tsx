@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
@@ -8,13 +8,14 @@ import { Sheet } from "@/components/sheet";
 import { RegisterServiceWorker, clearOfflineData } from "@/components/pwa";
 import { setFocusWorkspace, signOut } from "@/app/actions/auth";
 import { Logo, LogoMark } from "@/components/logo";
+import { LiveRefresh } from "@/components/live";
 
 type Ws = { id: string; name: string; is_agency: boolean };
 
 const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Today", icon: "home" },
   { href: "/inbox", label: "Inbox", icon: "inbox" },
-  { href: "/upload", label: "Upload", icon: "plus" },
+  { href: "/edit", label: "Make", icon: "plus" },
   { href: "/calendar", label: "Calendar", icon: "calendar" },
   { href: "/clients", label: "Clients", icon: "clients" },
 ];
@@ -31,6 +32,7 @@ export function StaffShell({ children, workspaces, focus, unread, email }: { chi
   return (
     <div className="min-h-svh md:grid md:grid-cols-[15rem_1fr]">
       <RegisterServiceWorker />
+      <LiveRefresh />
       <aside className="sticky top-0 hidden h-svh flex-col border-r border-rule px-4 py-6 md:flex">
         <Link href="/" className="px-1"><Logo /></Link>
         <nav className="mt-8 grid gap-1">
@@ -98,7 +100,7 @@ export function StaffShell({ children, workspaces, focus, unread, email }: { chi
         <ul className="mx-auto grid h-16 max-w-md grid-cols-5">
           {NAV.map((n) => {
             const on = active(n.href);
-            const upload = n.href === "/upload";
+            const upload = n.href === "/edit";
             return (
               <li key={n.href} className="grid place-items-center">
                 <Link href={n.href} prefetch aria-current={on ? "page" : undefined} className={`press flex flex-col items-center gap-0.5 text-[11px] ${on ? "text-bone" : "text-ash"}`}>

@@ -1,14 +1,16 @@
 import { AGENCY_NAME } from "@/lib/brand";
-import Link from "next/link";
+import Link from "@/components/link";
 import { createClient } from "@/lib/supabase/server";
 import { getPortal, clientStatus } from "@/lib/portal";
 import { ButtonLink, EmptyState, PlatformTag, Section } from "@/components/ui";
 import { formatAgo, formatWhen } from "@/lib/format";
 import type { JobStatus } from "@/lib/domain/types";
+import { Eta } from "@/components/live";
+import { PushToggle } from "@/components/push-toggle";
 
 export const metadata = { title: "Your content" };
 
-type Row = { id: string; title: string; status: JobStatus; review_stage: string | null; updated_at: string; source: string };
+type Row = { id: string; title: string; status: JobStatus; review_stage: string | null; updated_at: string; source: string; eta_at: string | null };
 
 function JobList({ slug, rows, cta }: { slug: string; rows: Row[]; cta?: string }) {
   return (
@@ -19,6 +21,7 @@ function JobList({ slug, rows, cta }: { slug: string; rows: Row[]; cta?: string 
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{j.title}</p>
               <p className="text-sm text-ash">{clientStatus(j.status, j.review_stage)} · {formatAgo(j.updated_at)}</p>
+              <Eta eta={j.eta_at} status={j.status} className="text-xs text-mist" />
             </div>
             {cta ? <span className="rounded-full bg-bone px-3.5 py-1.5 text-sm font-semibold text-ink">{cta}</span> : null}
           </Link>
@@ -35,7 +38,7 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
   const supabase = await createClient();
   // RLS limits every query below to this workspace and to what the permissions allow.
   const [{ data: jobs }, { data: posts }] = await Promise.all([
-    supabase.from("content_jobs").select("id, title, status, review_stage, updated_at, source").eq("workspace_id", portal.id).order("updated_at", { ascending: false }).limit(80),
+    supabase.from("content_jobs").select("id, title, status, review_stage, updated_at, source, eta_at").eq("workspace_id", portal.id).order("updated_at", { ascending: false }).limit(80),
     p.can_view_calendar || p.can_view_published
       ? supabase.from("content_posts").select("id, job_id, platform, status, scheduled_at, published_at, external_url, job:content_jobs(title)").eq("workspace_id", portal.id).order("scheduled_at", { ascending: true }).limit(60)
       : Promise.resolve({ data: [] }),
@@ -50,6 +53,7 @@ export default async function PortalHome({ params }: { params: Promise<{ slug: s
 
   return (
     <div>
+      <PushToggle compact />
       <h1 className="t-display mb-6">{needsYou.length ? `${needsYou.length} ready for you.` : "Your content."}</h1>
 
       {p.can_upload ? (

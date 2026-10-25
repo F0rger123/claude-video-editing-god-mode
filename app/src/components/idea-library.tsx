@@ -6,7 +6,12 @@ import { IdeaDetail, type IdeaFull } from "@/components/idea-detail";
 type Saved = IdeaFull & { id: string; status: string; job_id: string | null };
 
 /** Liked / saved ideas ready to record, plus "add my own idea". Shared by staff and portal. */
-export function IdeaLibrary({ workspaceId, ideas, uploadHref, jobHref, canAdd }: { workspaceId: string; ideas: Saved[]; uploadHref: string; jobHref: string; canAdd: boolean }) {
+/**
+ * `makeHref` (staff): the Make screen, opened with this idea (`?idea=`). Clients go to their upload
+ * page with the script (`?script=`). Either way: "Make this video", or "Record it" straight away.
+ */
+export function IdeaLibrary({ workspaceId, ideas, uploadHref, jobHref, canAdd, makeHref }: { workspaceId: string; ideas: Saved[]; uploadHref: string; jobHref: string; canAdd: boolean; makeHref?: string }) {
+  const make = (id: string, record = false) => (makeHref ? `${makeHref}?idea=${id}${record ? "&record=1" : ""}` : `${uploadHref}?script=${id}${record ? "&record=1" : ""}`);
   return (
     <div className="grid gap-3">
       {ideas.length ? (
@@ -21,9 +26,9 @@ export function IdeaLibrary({ workspaceId, ideas, uploadHref, jobHref, canAdd }:
               {i.job_id ? (
                 <ButtonLink href={`${jobHref}${i.job_id}`} variant="ghost" className="h-10 w-full text-xs">See the video</ButtonLink>
               ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <ButtonLink href={`${uploadHref}?script=${i.id}&record=1`} icon="film" className="h-11">Record now</ButtonLink>
-                  <ButtonLink href={`${uploadHref}?script=${i.id}`} variant="ghost" icon="upload" className="h-11">Upload a take</ButtonLink>
+                <div className="grid grid-cols-[1fr_auto] gap-2">
+                  <ButtonLink href={make(i.id)} icon="spark" className="h-11">Make this video</ButtonLink>
+                  <ButtonLink href={make(i.id, true)} variant="ghost" icon="note" className="h-11">Record it</ButtonLink>
                 </div>
               )}
             </div>

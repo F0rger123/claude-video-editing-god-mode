@@ -32,12 +32,22 @@
 }
 
 html {
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* No pull-down-to-reload and no rubber-band bounce: it's an app, not a web page. */
+  overscroll-behavior: none;
   background: var(--color-ink);
   color-scheme: dark;
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
+  /* Nothing can push the page wider than the screen (that's what made phones zoom out).
+     "clip", not "hidden": sticky headers keep working. */
+  overflow-x: clip;
+  max-width: 100vw;
+  touch-action: manipulation;
   background:
     radial-gradient(60rem 28rem at 15% -10%, rgb(124 58 237 / 0.22), transparent 60%),
     radial-gradient(40rem 22rem at 100% 0%, rgb(249 115 22 / 0.1), transparent 60%),
@@ -335,4 +345,20 @@ html {
     background: var(--color-bone);
     opacity: 0.4;
   }
+}
+
+/* Caption style previews (Make screen). Looping, small, and off when Reduce Motion is on. */
+@keyframes cp-pop { 0%, 15% { transform: scale(0.4); opacity: 0; } 30% { transform: scale(1.12); opacity: 1; } 40%, 85% { transform: scale(1); opacity: 1; } 100% { opacity: 0; } }
+@keyframes cp-throw { 0%, 10% { transform: translate(-30px, 20px) rotate(-25deg); opacity: 0; } 30%, 85% { transform: none; opacity: 1; } 100% { opacity: 0; } }
+@keyframes cp-drift { 0%, 10% { transform: translateY(8px); opacity: 0; } 35%, 85% { transform: none; opacity: 1; } 100% { opacity: 0; } }
+@keyframes cp-fade { 0%, 10% { opacity: 0; } 25%, 85% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes cp-slide { 0%, 10% { transform: translateY(18px); opacity: 0; clip-path: inset(100% 0 0 0); } 35%, 85% { transform: none; opacity: 1; clip-path: inset(0); } 100% { opacity: 0; } }
+@keyframes cp-glitch { 0%, 20% { filter: blur(6px); opacity: 0; } 30% { filter: none; opacity: 1; transform: translateX(-2px); } 34% { transform: translateX(2px); } 38%, 85% { transform: none; opacity: 1; } 100% { opacity: 0; } }
+@keyframes cp-blink { 0%, 20% { background: transparent; color: #fff; } 30%, 85% { background: #facc15; color: #111; } 100% { background: transparent; color: #fff; } }
+@keyframes cp-type { 0%, 10% { clip-path: inset(0 100% 0 0); } 60%, 90% { clip-path: inset(0 0 0 0); } 100% { clip-path: inset(0 0 0 0); opacity: 0; } }
+.cp-pop, .cp-throw, .cp-drift, .cp-fade, .cp-slide, .cp-glitch, .cp-blink, .cp-type { display: inline-block; animation-duration: 2.4s; animation-iteration-count: infinite; animation-timing-function: var(--ease-out); }
+.cp-pop { animation-name: cp-pop; } .cp-throw { animation-name: cp-throw; } .cp-drift { animation-name: cp-drift; } .cp-fade { animation-name: cp-fade; }
+.cp-slide { animation-name: cp-slide; } .cp-glitch { animation-name: cp-glitch; } .cp-blink { animation-name: cp-blink; } .cp-type { animation-name: cp-type; animation-timing-function: steps(12); }
+@media (prefers-reduced-motion: reduce) {
+  .cp-pop, .cp-throw, .cp-drift, .cp-fade, .cp-slide, .cp-glitch, .cp-blink, .cp-type { animation: none; }
 }

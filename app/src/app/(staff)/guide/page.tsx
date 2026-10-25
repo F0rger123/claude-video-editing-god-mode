@@ -1,5 +1,5 @@
 import { AGENCY_NAME } from "@/lib/brand";
-import Link from "next/link";
+import Link from "@/components/link";
 import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui";
@@ -84,7 +84,7 @@ export default async function GuidePage() {
           Clients can do the same if you allow it, with a monthly limit you set per client.
         </Step>
         <Step n={1.5} title="Record with the script on screen" href="/scripts" cta="Ready to record">
-          On a saved idea, tap Record now: the camera opens with the script scrolling as a teleprompter. Use the take, and it goes
+          On a saved idea, tap Record it (or Make this video to upload footage instead): the camera opens with the script scrolling as a teleprompter. Use the take, and it goes
           straight into the upload.
         </Step>
         <Step n={2} title="Record and upload" href="/upload" cta="Upload">

@@ -39,6 +39,7 @@ export const unreadCount = cache(async (userId: string): Promise<number> => {
 
 export type JobRow = {
   id: string;
+  eta_at?: string | null;
   workspace_id: string;
   title: string;
   form: "short" | "long";
@@ -57,7 +58,7 @@ export type JobRow = {
 };
 
 export const JOB_COLUMNS =
-  "id, workspace_id, title, form, platforms, status, review_stage, needs_attention, attention_reason, priority, due_date, source, revision_count, current_version_id, created_at, updated_at";
+  "id, workspace_id, title, form, platforms, status, review_stage, needs_attention, attention_reason, priority, due_date, source, revision_count, current_version_id, created_at, updated_at, eta_at";
 
 /** Adds `workspace_id = focus` to a query when the owner is focused on one client. */
 export function scoped<T>(query: T, workspaceId: string | null | undefined): T {

@@ -10,7 +10,8 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  // No Worker cron: the free plan allows 5 per account and they are in use. The editing-PC bridge
+  // No Worker cron: the free plan allows 5 per account and they are in use. Supabase pg_cron calls
+  // /api/cron/tick every 2 minutes instead (scripts/setup-db-cron.mjs), and the editing-PC bridge
   // calls /api/cron/tick on every 5-minute pass instead. Re-add "triggers": { "crons": ["*/5 * * * *"] }
   // on Workers Paid if the background pass must run while the PC is off.
   // Run the Worker next to the database (Supabase, us-west-2) instead of next to the phone: every page

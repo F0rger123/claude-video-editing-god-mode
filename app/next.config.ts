@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "2mb" },
     // Screens visited (dynamic) or preloaded by the tab bar (static = prefetch) are reused instantly for
     // this long; any save clears them (server actions revalidate), so nothing goes stale after a change.
-    staleTimes: { dynamic: 60, static: 300 },
+    staleTimes: { dynamic: 120, static: 300 },
   },
 };
 

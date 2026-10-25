@@ -10,7 +10,18 @@ import { useRouter } from "next/navigation";
 export function RegisterServiceWorker() {
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.register(`/sw.js?v=${process.env.NEXT_PUBLIC_BUILD_ID ?? "dev"}`, { scope: "/" }).catch(() => {});
+    // Plain /sw.js: the browser itself re-checks it on every app open (no stale page needed to update it).
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/", updateViaCache: "none" })
+      .then((reg) => reg.update())
+      .catch(() => {});
+    // A new worker took over (new deploy): reload once so this screen runs the new code.
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloaded || !navigator.serviceWorker.controller) return;
+      reloaded = true;
+      window.location.reload();
+    });
   }, []);
   return null;
 }

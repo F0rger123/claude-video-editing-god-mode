@@ -8,16 +8,22 @@ import { Icon, type IconName } from "@/components/icons";
 import { MEDIA_KIND_LABEL, PLATFORM_LABEL, type MediaKind, type Platform, type PostTiming } from "@/lib/domain/types";
 import { formatBytes, formatDuration } from "@/lib/format";
 import { Teleprompter } from "@/components/teleprompter";
+import { CAMERA_PHOTO, CAMERA_VIDEO, CardImport } from "@/components/card-import";
 
 type Item = { id: string; file: File; kind: MediaKind; role: UploadFileSpec["role"]; duration: number | null; progress: number; state: "ready" | "uploading" | "done" | "failed"; preview: string | null };
 export type PresetOption = { id: string; kind: "captions" | "sound" | "edit"; name: string; instructions: string | null; is_default: boolean };
 export type ScriptOption = { id: string; hook: string; form: "short" | "long"; script?: string | null; outline?: string | null };
 export type LibraryOption = { id: string; name: string; kind: string; notes: string | null; workspace_id: string | null };
+export type ProjectOption = { id: string; workspace_id: string; name: string };
+/** A client's brand kit at a glance: main logo (signed preview URL), colors, number of items. */
+export type BrandKitSummary = { workspace_id: string; logo: string | null; colors: string[]; items: number };
 type WorkspaceOption = { id: string; name: string; allowed_platforms: string[] };
 
 const KIND_ICON: Partial<Record<MediaKind, IconName>> = { video: "film", broll: "layers", photo: "image", audio: "audio", logo: "image", reference_video: "film", reference_image: "image" };
+// Camera files often have no MIME type (MTS, MXF, RAW photos), so the extension decides too.
+const isImage = (f: File) => f.type.startsWith("image/") || (CAMERA_PHOTO.test(f.name) && !CAMERA_VIDEO.test(f.name));
 const guessKind = (f: File, reference: boolean): MediaKind =>
-  reference ? (f.type.startsWith("image/") ? "reference_image" : "reference_video") : f.type.startsWith("video/") ? "video" : f.type.startsWith("image/") ? "photo" : f.type.startsWith("audio/") ? "audio" : "video";
+  reference ? (isImage(f) ? "reference_image" : "reference_video") : isImage(f) ? "photo" : f.type.startsWith("audio/") ? "audio" : "video";
 
 function readDuration(file: File): Promise<number | null> {
   if (!file.type.startsWith("video/") && !file.type.startsWith("audio/")) return Promise.resolve(null);
@@ -153,6 +159,8 @@ export function UploadComposer({
   presetTarget,
   library = [],
   initialRecord = false,
+  projects = [],
+  kits = [],
 }: {
   workspaces?: WorkspaceOption[];
   fixedWorkspaceId?: string;
@@ -169,8 +177,10 @@ export function UploadComposer({
   presetTarget?: { id: string; name: string } | null;
   /** Staff only: library items that can be picked per video. */
   library?: LibraryOption[];
-  /** Open the teleprompter right away (from an idea's "Record now"). */
+  /** Open the teleprompter right away (from an idea's "Record it"). */
   initialRecord?: boolean;
+  projects?: ProjectOption[];
+  kits?: BrandKitSummary[];
 }) {
   const router = useRouter();
   const footageInput = useRef<HTMLInputElement>(null);
@@ -193,6 +203,11 @@ export function UploadComposer({
   const [style, setStyle] = useState({ captions: defaultOf("captions"), sound: defaultOf("sound"), edit: defaultOf("edit") });
   const [styleNotes, setStyleNotes] = useState("");
   const [materials, setMaterials] = useState<string[]>([]);
+  const [projectId, setProjectId] = useState("");
+  const [useBrandKit, setUseBrandKit] = useState(true);
+  const [cardOpen, setCardOpen] = useState(false);
+  const wsProjects = projects.filter((p) => p.workspace_id === workspaceId);
+  const kit = kits.find((k) => k.workspace_id === workspaceId);
   const wsLibrary = library.filter((l) => !l.workspace_id || l.workspace_id === workspaceId);
   const [timing, setTiming] = useState<PostTiming | "default">("default");
   const [postAt, setPostAt] = useState("");
@@ -224,11 +239,11 @@ export function UploadComposer({
   const footage = items.filter((i) => !i.kind.startsWith("reference"));
   const references = items.filter((i) => i.kind.startsWith("reference"));
 
-  async function addFiles(list: FileList | null, reference: boolean) {
+  async function addFiles(list: FileList | File[] | null, reference: boolean) {
     if (!list) return;
     const next: Item[] = [];
     for (const file of Array.from(list)) {
-      next.push({ id: crypto.randomUUID(), file, kind: guessKind(file, reference || Boolean(presetTarget)), role: reference ? "reference" : "source", duration: await readDuration(file), progress: 0, state: "ready", preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : null });
+      next.push({ id: crypto.randomUUID(), file, kind: guessKind(file, reference || Boolean(presetTarget)), role: reference ? "reference" : "source", duration: await readDuration(file), progress: 0, state: "ready", preview: file.type.startsWith("image/") && !/\.(dng|arw|cr2|cr3|nef|raf|orf|rw2)$/i.test(file.name) ? URL.createObjectURL(file) : null });
     }
     setItems((cur) => {
       const merged = [...cur, ...next];
@@ -267,6 +282,8 @@ export function UploadComposer({
               requireReview: review,
               scriptId: scriptId || null,
               styleChoices: { ...style, notes: styleNotes || undefined, materials: materials.length ? materials : undefined },
+              projectId: projectId || null,
+              useBrandKit,
               postTiming: timing === "default" ? null : timing,
               postAt: timing === "fixed" && postAt ? new Date(postAt).toISOString() : null,
             }
@@ -356,6 +373,15 @@ export function UploadComposer({
                 <span className="mb-1.5 block text-sm font-medium">What is this video?</span>
                 <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Kitchen remodel before & after" className="field" maxLength={160} />
               </label>
+              {wsProjects.length ? (
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium">Project <span className="font-normal text-ash">optional</span></span>
+                  <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="field">
+                    <option value="">No project</option>
+                    {wsProjects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </label>
+              ) : null}
               <div className="grid grid-cols-2 gap-2">
                 <Choice on={form === "short"} onClick={() => setForm("short")} title="Short-form" body="9:16 reel, TikTok, Short" />
                 <Choice on={form === "long"} onClick={() => setForm("long")} title="Long-form" body="16:9 YouTube video" />
@@ -392,8 +418,8 @@ export function UploadComposer({
               <div className="grid content-center rounded-3xl border border-rule p-3 text-xs text-ash">Screenshots of captions you like, screen recordings of reels, or paste links below.</div>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
-              <button type="button" onClick={() => photosInput.current?.click()} className="press col-span-3 flex min-h-24 items-center justify-center gap-3 rounded-3xl bg-bone text-ink">
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => photosInput.current?.click()} className="press col-span-2 flex min-h-24 items-center justify-center gap-3 rounded-3xl bg-bone text-ink">
                 <Icon name="image" className="size-6" />
                 <span className="text-left">
                   <span className="block font-semibold">Photos & videos</span>
@@ -405,6 +431,9 @@ export function UploadComposer({
               </button>
               <button type="button" onClick={() => cameraInput.current?.click()} className="press flex h-20 flex-col items-center justify-center gap-1 rounded-2xl border border-rule-strong text-xs text-mist hover:border-bone hover:text-bone">
                 <Icon name="film" className="size-5" /> Camera
+              </button>
+              <button type="button" onClick={() => setCardOpen(true)} className="press flex h-20 flex-col items-center justify-center gap-1 rounded-2xl border border-rule-strong text-xs text-mist hover:border-bone hover:text-bone">
+                <Icon name="sdcard" className="size-5" /> Camera card / USB
               </button>
               {!simple ? (
                 <button type="button" onClick={() => setPrompter(true)} className="press flex h-20 flex-col items-center justify-center gap-1 rounded-2xl border border-rule-strong text-xs text-mist hover:border-bone hover:text-bone">
@@ -446,6 +475,33 @@ export function UploadComposer({
 
       {step === "style" ? (
         <Panel>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={useBrandKit && Boolean(kit?.items)}
+            disabled={!kit?.items}
+            onClick={() => setUseBrandKit(!useBrandKit)}
+            className={`press flex items-center gap-3 rounded-3xl border p-3 text-left transition-colors disabled:opacity-60 ${useBrandKit && kit?.items ? "border-bone bg-char" : "border-rule"}`}
+          >
+            <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl border border-rule bg-ink">
+              {kit?.logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={kit.logo} alt="" className="size-full object-contain p-1.5" />
+              ) : (
+                <Icon name="image" className="size-5 text-ash" />
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold">Use {wsName ?? "the"} brand kit</span>
+              <span className="mt-1 flex items-center gap-1">
+                {kit?.colors.length ? kit.colors.slice(0, 6).map((c) => <span key={c} className="size-3.5 rounded-full border border-rule-strong" style={{ background: c }} />) : null}
+                <span className="ml-1 text-xs text-ash">{kit?.items ? `${kit.items} item${kit.items === 1 ? "" : "s"}: logo, colors, fonts…` : staff ? "No brand kit yet (Clients → Brand kit)" : "No brand kit yet"}</span>
+              </span>
+            </span>
+            <span aria-hidden className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${useBrandKit && kit?.items ? "bg-bone" : "bg-graphite"}`}>
+              <span className={`absolute top-1 size-5 rounded-full transition-all ${useBrandKit && kit?.items ? "left-6 bg-ink" : "left-1 bg-ash"}`} />
+            </span>
+          </button>
           <p className="text-sm text-ash">Pick a saved style for {wsName ?? "this client"}, or let Claude choose from the brand profile and its references.</p>
           <StylePick label="Captions" kind="captions" presets={wsPresets} value={style.captions} onChange={(v) => setStyle({ ...style, captions: v })} />
           <StylePick label="Sound effects" kind="sound" presets={wsPresets} value={style.sound} onChange={(v) => setStyle({ ...style, sound: v })} />
@@ -511,6 +567,8 @@ export function UploadComposer({
               <>
                 <div className="flex justify-between gap-3"><dt className="text-ash">Video</dt><dd className="truncate">{title || "Untitled"} · {form === "short" ? "Short" : "Long"}</dd></div>
                 <div className="flex justify-between gap-3"><dt className="text-ash">Post to</dt><dd>{platforms.map((p) => PLATFORM_LABEL[p as Platform] ?? p).join(", ") || "Not set"}</dd></div>
+                {projectId ? <div className="flex justify-between gap-3"><dt className="text-ash">Project</dt><dd className="truncate">{wsProjects.find((p) => p.id === projectId)?.name}</dd></div> : null}
+                <div className="flex justify-between gap-3"><dt className="text-ash">Brand kit</dt><dd>{kit?.items ? (useBrandKit ? "On" : "Off") : "None yet"}</dd></div>
                 <div className="flex justify-between gap-3"><dt className="text-ash">Style</dt><dd className="text-right">{presetName(style.captions)} · {presetName(style.sound)} · {presetName(style.edit)}{materials.length ? ` · ${materials.length} picked` : ""}</dd></div>
                 {staff ? <div className="flex justify-between gap-3"><dt className="text-ash">Posting</dt><dd>{timing === "default" ? "Client default" : timing === "auto_slot" ? "Best slot" : timing === "after_edit" ? "After editing" : postAt.replace("T", " ")}{review ? " · needs my OK" : ""}</dd></div> : null}
               </>
@@ -523,6 +581,8 @@ export function UploadComposer({
           {result?.ok ? <p role="status" className="text-sm text-success">{result.ok}</p> : null}
         </Panel>
       ) : null}
+
+      <CardImport open={cardOpen} onClose={() => setCardOpen(false)} onImport={(files) => void addFiles(files, false)} />
 
       {prompter ? (
         <Teleprompter

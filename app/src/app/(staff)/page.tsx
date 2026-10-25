@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/link";
 import { createClient } from "@/lib/supabase/server";
 import { getFocus, listWorkspaces, scoped, JOB_COLUMNS, type JobRow } from "@/lib/data";
 import { periodStarts } from "@/lib/domain/quota";
@@ -6,6 +6,8 @@ import { localDate } from "@/lib/domain/schedule";
 import { Meter, PlatformTag, PostPill, Section, StatusPill } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import type { PackageLimits } from "@/lib/domain/types";
+import { Eta } from "@/components/live";
+import { PushToggle } from "@/components/push-toggle";
 
 export const metadata = { title: "Today" };
 
@@ -44,6 +46,7 @@ export default async function Dashboard() {
   const todays = (todayPosts.data ?? []).filter((p) => localDate(new Date(p.scheduled_at as string), tz) === today);
   const nameOf = new Map(workspaces.map((w) => [w.id, w.name]));
   const integrationIssues = (integrations.data ?? []).length + (channelsDown.count ?? 0);
+  const { data: bufferRow } = await supabase.from("content_integrations").select("id").eq("kind", "buffer").is("workspace_id", null).maybeSingle();
 
   // Per-client usage this month (counts, never raw files).
   const clientIds = (ws.data ?? []).filter((w) => !focus || w.id === focus.id).map((w) => w.id);
@@ -76,10 +79,21 @@ export default async function Dashboard() {
         <p className="text-sm text-ash">{now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: tz })}</p>
         <h1 className="t-display mt-1">{attentionTotal ? `${attentionTotal} need${attentionTotal === 1 ? "s" : ""} you.` : "All clear."}</h1>
       </header>
+      <PushToggle compact />
+      {!bufferRow ? (
+        <Link href="/settings#buffer" className="press rise-in mb-4 flex items-center gap-3 rounded-2xl border border-attention/40 bg-attention/[0.06] px-4 py-3">
+          <Icon name="link" className="size-5 text-attention" />
+          <span className="min-w-0 flex-1 text-sm"><span className="font-semibold">Connect Buffer</span> <span className="text-mist">so finished videos post by themselves. About a minute.</span></span>
+          <Icon name="chevron" className="size-4 text-ash" />
+        </Link>
+      ) : null}
 
       <div className="mb-8 grid grid-cols-3 gap-2.5">
-        <Link href="/upload" className="press col-span-3 flex h-16 items-center justify-center gap-2 rounded-3xl bg-bone text-base font-semibold text-ink">
-          <Icon name="upload" className="size-5" /> Upload a video
+        <Link href="/edit" className="press col-span-2 flex h-16 items-center justify-center gap-2 rounded-3xl bg-bone text-base font-semibold text-ink">
+          <Icon name="spark" className="size-5" /> Make a video
+        </Link>
+        <Link href="/upload" className="press flex h-16 flex-col items-center justify-center gap-0.5 rounded-3xl border border-rule-strong text-xs">
+          <Icon name="upload" className="size-5" /> All options
         </Link>
         <Link href="/inbox" className="press relative flex h-20 flex-col items-center justify-center gap-1 rounded-3xl border border-rule bg-coal text-sm">
           <Icon name="inbox" className="size-5" /> Review
@@ -163,7 +177,10 @@ export default async function Dashboard() {
             {((editing.data ?? []) as JobRow[]).map((j) => (
               <li key={j.id}>
                 <Link href={`/jobs/${j.id}`} className="press flex items-center gap-3 rounded-xl px-1 py-1.5 text-sm">
-                  <span className="min-w-0 flex-1 truncate">{j.title}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{j.title}</span>
+                    <Eta eta={j.eta_at} status={j.status} className="block text-xs text-mist" />
+                  </span>
                   <span className="text-ash">{nameOf.get(j.workspace_id)}</span>
                   <StatusPill status={j.status} />
                 </Link>
