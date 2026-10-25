@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import path from "node:path";
-import { aboutText, brandDirs, clipBaseFor, DIRECT_FILE, editNote, findAgainEntry, libraryIndexText, libraryTarget, newOptions, parseCaptionJson, parseIdeas, safePart, scriptPrompt, shouldWriteAbout, statusFromEditor } from "./lib.mjs";
+import { aboutText, brandDirs, brandKitFileName, brandKitLines, clipBaseFor, DIRECT_FILE, editNote, findAgainEntry, libraryIndexText, libraryTarget, newOptions, parseCaptionJson, parseIdeas, safePart, scriptPrompt, shouldWriteAbout, statusFromEditor } from "./lib.mjs";
 
 describe("bridge ↔ drive-inbox contract", () => {
   it("uses the editor's folder layout", () => {
@@ -85,5 +85,73 @@ describe("bridge ↔ drive-inbox contract", () => {
     const out = parseCaptionJson('ok {"instagram":{"caption":"Hi","hashtags":["#a","b c"]},"bad":{}}');
     expect(out.instagram.hashtags).toEqual(["#a", "#bc"]);
     expect(out.bad).toBeUndefined();
+  });
+});
+
+describe("brand kit in the edit note", () => {
+  const kit = {
+    logos: [{ name: "Alt logo", path: "R/Brand kit/logo/alt.png" }, { name: "Main logo", path: "R/Brand kit/logo/main.png", primary: true }],
+    colors: [{ name: "Red", value: "#ef4444", primary: true }, { name: "Black", value: "#000000" }],
+    fonts: [{ name: "Inter Bold", path: "R/Brand kit/font/inter.ttf" }],
+    outros: [{ name: "End card", path: "R/Brand kit/outro/end.mp4", primary: true }],
+  };
+  it("lists the main logo first, colors with hex, fonts and outro", () => {
+    const text = brandKitLines(kit).join("\n");
+    expect(text).toMatch(/Logo: Main logo \(main\) — R\/Brand kit\/logo\/main.png; Alt logo/);
+    expect(text).toContain("Brand colors: Red #ef4444 (main), Black #000000");
+    expect(text).toContain("Fonts: Inter Bold");
+    expect(text).toContain("End with it.");
+  });
+  it("says not to brand when switched off", () => {
+    expect(brandKitLines(kit, false).join(" ")).toMatch(/do NOT apply/);
+  });
+  it("is part of the edit note, with the project brief", () => {
+    const note = editNote({ job: { title: "T" }, media: [], extraDir: "x", brandKit: kit, project: { name: "Spring launch", brief: "Show the new showroom", refs: ["https://x.test/r"] } });
+    expect(note).toContain("Project: Spring launch — Show the new showroom");
+    expect(note).toContain("brand kit (use it");
+    const off = editNote({ job: { title: "T", use_brand_kit: false }, media: [], extraDir: "x", brandKit: null });
+    expect(off).toMatch(/do NOT apply/);
+  });
+  it("names kit files stably", () => {
+    expect(brandKitFileName({ id: "abcdef123", kind: "logo", name: "Main logo!", file_name: "logo.png" }).replace(/\\/g, "/")).toBe("logo/Main logo!-abcdef.png");
+  });
+});
+
+describe("edit time estimates", () => {
+  it("uses the median of recent edits, within 5-90 minutes", async () => {
+    const { typicalEditMs } = await import("./lib.mjs");
+    const job = (min) => ({ status: "done", started: "2026-10-20T10:00:00Z", finished: new Date(Date.parse("2026-10-20T10:00:00Z") + min * 60e3).toISOString() });
+    expect(typicalEditMs({ jobs: { a: job(10), b: job(30), c: job(14) } })).toBe(14 * 60e3);
+    expect(typicalEditMs({ jobs: {} })).toBe(20 * 60e3);
+    expect(typicalEditMs({ jobs: { a: job(200) } })).toBe(90 * 60e3);
+  });
+  it("queues videos one after another after the current edit", async () => {
+    const { estimateEtas } = await import("./lib.mjs");
+    const now = Date.parse("2026-10-25T12:00:00Z");
+    const m = estimateEtas({ now, typicalMs: 20 * 60e3, current: { id: "cur", startedAt: now - 5 * 60e3 }, queued: ["q1", "q2"] });
+    expect(m.get("cur").toISOString()).toBe("2026-10-25T12:15:00.000Z");
+    expect(m.get("q1").toISOString()).toBe("2026-10-25T12:35:00.000Z");
+    expect(m.get("q2").toISOString()).toBe("2026-10-25T12:55:00.000Z");
+  });
+  it("never promises less than 3 minutes for a running edit, and waits for a paused editor", async () => {
+    const { estimateEtas } = await import("./lib.mjs");
+    const now = Date.parse("2026-10-25T12:00:00Z");
+    expect(estimateEtas({ now, typicalMs: 10 * 60e3, current: { id: "c", startedAt: now - 60 * 60e3 } }).get("c").toISOString()).toBe("2026-10-25T12:03:00.000Z");
+    const later = now + 60 * 60e3;
+    expect(estimateEtas({ now, typicalMs: 10 * 60e3, queued: ["q"], resumeAt: later }).get("q").toISOString()).toBe("2026-10-25T13:10:00.000Z");
+  });
+});
+
+describe("edit note: references, colors, priority", () => {
+  it("points the editor at downloaded references and says they win", () => {
+    const note = editNote({ job: { title: "T" }, extraDir: "x", media: [{ kind: "link", url: "https://www.instagram.com/reel/X/", localPath: "C:/jobs/reference-1.mp4" }, { kind: "link", url: "https://tiktok.com/@a/video/1" }] });
+    expect(note).toContain("REFERENCE VIDEOS");
+    expect(note).toContain("C:/jobs/reference-1.mp4 (downloaded from https://www.instagram.com/reel/X/)");
+    expect(note).toContain("https://tiktok.com/@a/video/1 (could not be downloaded");
+  });
+  it("lists the colors picked for this video and the priority rule", () => {
+    const note = editNote({ job: { title: "T", style_choices: { colors: ["#ef4444", "nope", "#111111"] } }, media: [], extraDir: "x" });
+    expect(note).toContain("Colors for this video (use exactly these for captions, highlights, titles and graphics): #ef4444, #111111.");
+    expect(note).toMatch(/Following my notes for this video is never a reason to write NEEDS-REVIEW/);
   });
 });

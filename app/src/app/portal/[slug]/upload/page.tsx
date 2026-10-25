@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPortal } from "@/lib/portal";
 import { PageHeader } from "@/components/ui";
 import { UploadComposer } from "@/components/upload-composer";
+import { brandKitSummaries } from "@/lib/brand-kits";
 
 export const metadata = { title: "Upload" };
 
@@ -12,12 +13,14 @@ export default async function PortalUpload({ params, searchParams }: { params: P
   const portal = await getPortal(slug);
   if (!portal.permissions.can_upload || portal.isStaffPreview) notFound();
   const supabase = await createClient();
-  const [{ data: job }, { data: presets }, { data: scripts }] = await Promise.all([
+  const [{ data: job }, { data: presets }, { data: scripts }, { data: projects }, kits] = await Promise.all([
     jobId ? supabase.from("content_jobs").select("id, title").eq("id", jobId).eq("workspace_id", portal.id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("content_style_presets").select("id, workspace_id, kind, name, instructions, is_default").eq("workspace_id", portal.id).is("archived_at", null),
     portal.permissions.can_view_scripts
       ? supabase.from("content_script_ideas").select("id, workspace_id, hook, form, script, outline").eq("workspace_id", portal.id).in("status", ["liked", "saved"]).limit(50)
       : Promise.resolve({ data: [] }),
+    supabase.from("content_projects").select("id, workspace_id, name").eq("workspace_id", portal.id).eq("status", "active"),
+    brandKitSummaries(supabase, [portal.id]),
   ]);
   return (
     <div>
@@ -33,6 +36,8 @@ export default async function PortalUpload({ params, searchParams }: { params: P
         existingJob={job}
         presets={presets ?? []}
         scripts={scripts ?? []}
+        projects={projects ?? []}
+        kits={kits}
         initialScriptId={script ?? null}
         initialRecord={record === "1"}
         jobHrefPrefix={`/portal/${slug}/review/`}

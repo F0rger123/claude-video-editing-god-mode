@@ -46,9 +46,25 @@ export function Teleprompter({
   const [count, setCount] = useState(3);
   const [scriptId, setScriptId] = useState(initialScriptId ?? scripts[0]?.id ?? "own");
   const [ownText, setOwnText] = useState("");
-  const [speed, setSpeed] = useState(36);
-  const [size, setSize] = useState(30);
-  const [facing, setFacing] = useState<"user" | "environment">("user");
+  const pref = (key: string, fallback: string) => {
+    try {
+      return (typeof localStorage !== "undefined" && localStorage.getItem(key)) || fallback;
+    } catch {
+      return fallback;
+    }
+  };
+  const [speed, setSpeed] = useState(() => Number(pref("azc-prompter-speed", "36")));
+  const [size, setSize] = useState(() => Number(pref("azc-prompter-size", "30")));
+  const [facing, setFacing] = useState<"user" | "environment">(() => (pref("azc-prompter-facing", "user") === "environment" ? "environment" : "user"));
+  useEffect(() => {
+    try {
+      localStorage.setItem("azc-prompter-speed", String(speed));
+      localStorage.setItem("azc-prompter-size", String(size));
+      localStorage.setItem("azc-prompter-facing", facing);
+    } catch {
+      // storage blocked: defaults next time
+    }
+  }, [speed, size, facing]);
   const [paused, setPaused] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [take, setTake] = useState<{ url: string; file: File } | null>(null);
@@ -213,44 +229,38 @@ export function Teleprompter({
         </div>
       ) : null}
 
-      {/* Setup sheet */}
+      {/* Setup: one slim bar, not a form. Speed, size and camera are remembered on this phone. */}
       {phase === "setup" ? (
-        <div className="pb-safe absolute inset-x-0 bottom-0 max-h-[70%] overflow-y-auto rounded-t-3xl border-t border-rule bg-coal/95 px-5 pt-4 backdrop-blur">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="font-semibold">Teleprompter</p>
-            <button type="button" onClick={close} className="press h-10 rounded-full px-3 text-sm text-mist">Close</button>
-          </div>
-          <label className="block">
-            <span className="mb-1.5 block text-xs text-ash">Script</span>
-            <select value={scriptId} onChange={(e) => setScriptId(e.target.value)} className="field">
-              {scripts.map((s) => <option key={s.id} value={s.id}>{s.label.slice(0, 70)}</option>)}
-              <option value="own">Type my own…</option>
-            </select>
-          </label>
-          {scriptId === "own" ? (
-            <textarea value={ownText} onChange={(e) => setOwnText(e.target.value)} placeholder="Paste or write what you'll say" className="field mt-2 min-h-24" />
-          ) : (
-            <p className="mt-2 line-clamp-3 text-sm text-mist">{text}</p>
-          )}
-          <div className="mt-4">
-            <span className="mb-1.5 block text-xs text-ash">Speed</span>
-            <div className="grid grid-cols-3 gap-1 rounded-full border border-rule p-1 text-sm">
-              {SPEEDS.map((s) => (
-                <button key={s.label} type="button" onClick={() => setSpeed(s.value)} className={`press h-10 rounded-full ${speed === s.value ? "bg-bone font-semibold text-ink" : "text-mist"}`}>{s.label}</button>
-              ))}
+        <div className="pb-safe absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/85 to-transparent px-4 pt-16">
+          <div className="mx-auto grid max-w-md gap-3 pb-4">
+            {scripts.length && !initialScriptId ? (
+              <select value={scriptId} onChange={(e) => setScriptId(e.target.value)} aria-label="Script" className="field h-11 bg-ink/70 text-sm">
+                {scripts.map((s) => <option key={s.id} value={s.id}>{s.label.slice(0, 70)}</option>)}
+                <option value="own">Type my own…</option>
+              </select>
+            ) : null}
+            {scriptId === "own" ? (
+              <textarea value={ownText} onChange={(e) => setOwnText(e.target.value)} placeholder="Paste or write what you'll say" className="field min-h-20 bg-ink/70" />
+            ) : null}
+            <div className="flex items-center gap-2">
+              <div className="grid flex-1 grid-cols-3 gap-1 rounded-full border border-rule bg-ink/60 p-1 text-sm">
+                {SPEEDS.map((sp) => (
+                  <button key={sp.label} type="button" onClick={() => setSpeed(sp.value)} className={`press h-9 rounded-full ${speed === sp.value ? "bg-bone font-semibold text-ink" : "text-mist"}`}>{sp.label}</button>
+                ))}
+              </div>
+              <button type="button" aria-label="Text size" onClick={() => setSize((v) => (v >= 44 ? 24 : v + 6))} className="press grid size-11 shrink-0 place-items-center rounded-full border border-rule bg-ink/60 text-sm font-semibold">Aa</button>
+              <button type="button" aria-label={facing === "user" ? "Use back camera" : "Use front camera"} onClick={() => setFacing(facing === "user" ? "environment" : "user")} className="press grid size-11 shrink-0 place-items-center rounded-full border border-rule bg-ink/60">
+                <Icon name="refresh" className="size-4" />
+              </button>
             </div>
-            <input type="range" min={10} max={90} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} aria-label="Fine speed" className="mt-2 w-full accent-bone" />
+            <div className="flex items-center justify-between">
+              <button type="button" onClick={close} className="press h-12 w-20 rounded-full text-sm text-mist">Close</button>
+              <button type="button" disabled={camera !== "ready"} onClick={begin} aria-label="Start recording" className="press grid size-20 place-items-center rounded-full border-4 border-bone disabled:opacity-40">
+                <span className="size-14 rounded-full bg-danger" />
+              </button>
+              <span className="w-20 text-center text-[11px] leading-tight text-ash">{camera === "ready" ? (form === "short" ? "Hold upright" : "Turn sideways") : "Camera…"}</span>
+            </div>
           </div>
-          <div className="mt-2 grid grid-cols-2 items-end gap-3">
-            <label className="grid gap-1 text-xs text-ash">Text size<input type="range" min={20} max={52} value={size} onChange={(e) => setSize(Number(e.target.value))} className="accent-bone" /></label>
-            <button type="button" onClick={() => setFacing(facing === "user" ? "environment" : "user")} className="press flex h-10 items-center justify-center gap-2 rounded-full border border-rule text-sm text-mist">
-              <Icon name="refresh" className="size-4" /> {facing === "user" ? "Front camera" : "Back camera"}
-            </button>
-          </div>
-          <button type="button" disabled={camera !== "ready"} onClick={begin} className="press mb-4 mt-5 flex h-14 w-full items-center justify-center gap-3 rounded-full bg-danger text-base font-semibold text-ink disabled:opacity-40">
-            <span className="size-3 rounded-full bg-ink" /> {camera === "ready" ? "Start recording" : "Starting camera…"}
-          </button>
-          <p className="mb-2 text-center text-xs text-ash">{form === "short" ? "Hold the phone upright for short-form." : "Turn the phone sideways for long-form."} Tap the script while recording to pause it.</p>
         </div>
       ) : null}
 

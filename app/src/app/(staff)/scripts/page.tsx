@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/link";
 import { createClient } from "@/lib/supabase/server";
 import { getFocus, listWorkspaces } from "@/lib/data";
 import type { Idea } from "@/components/idea-deck";
@@ -39,7 +39,7 @@ export default async function ScriptsPage({ searchParams }: { searchParams: Prom
       {ws ? (
         <>
           <IdeaStudio key={`studio-${wsId}`} workspaceId={ws.id} pending={pending ?? null} perRequest={settings?.ideas_per_request ?? 5} compact={(fresh ?? []).length > 0} />
-          <IdeasView key={wsId} fresh={(fresh ?? []) as Idea[]} approved={(saved ?? []) as never} passed={(passed ?? []) as never} canSwipe workspaceId={ws.id} uploadHref="/upload" jobHref="/jobs/" canAdd />
+          <IdeasView key={wsId} fresh={(fresh ?? []) as Idea[]} approved={(saved ?? []) as never} passed={(passed ?? []) as never} canSwipe workspaceId={ws.id} uploadHref="/upload" jobHref="/jobs/" canAdd makeHref="/edit" />
           <ActionForm action={requestIdeas} className="mt-5">
             <input type="hidden" name="workspace" value={ws.id} />
             <SubmitButton variant="ghost" pending="Writing…" className="w-full">{settings?.scripts_enabled ? "Quick refill (mixed ideas)" : `Turn on automatic ideas for ${ws.name}`}</SubmitButton>

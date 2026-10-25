@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/link";
 import { useActionState, useEffect, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { Icon, type IconName } from "@/components/icons";
@@ -104,7 +104,7 @@ export function PostSheet({ post, tz, whenLocal, editable, children }: { post: C
               <Primary intent="move" tone="ghost">Set</Primary>
             </div>
             <Primary intent="approve">
-              <Icon name="send" className="size-4" /> {post.status === "failed" ? "Retry in Buffer" : "Approve & schedule"}
+              <Icon name="send" className="size-4" /> {post.status === "failed" ? "Retry" : "Approve & schedule"}
             </Primary>
             {confirmCancel ? (
               <div className="grid grid-cols-2 gap-2">

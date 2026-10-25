@@ -1,5 +1,5 @@
 import { AGENCY_NAME } from "@/lib/brand";
-import Link from "next/link";
+import Link from "@/components/link";
 import { createClient } from "@/lib/supabase/server";
 import { getFocus, listWorkspaces, scoped, JOB_COLUMNS, type JobRow } from "@/lib/data";
 import { EmptyState, PageHeader, StatusPill } from "@/components/ui";

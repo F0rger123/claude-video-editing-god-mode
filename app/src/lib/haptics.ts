@@ -50,16 +50,29 @@ export function hapticsEnabled(): boolean {
   }
 }
 
-export function haptic(kind: Haptic = "tap") {
-  if (typeof window === "undefined" || !hapticsEnabled()) return;
+/** "strong" doubles every pulse, for phones whose motor barely registers short taps. */
+export function hapticStrength(): "normal" | "strong" {
+  try {
+    return localStorage.getItem("azc-haptics-strength") === "strong" ? "strong" : "normal";
+  } catch {
+    return "normal";
+  }
+}
+
+/** Returns false when the browser refused to vibrate (no permission yet, setting off, unsupported). */
+export function haptic(kind: Haptic = "tap"): boolean {
+  if (typeof window === "undefined" || !hapticsEnabled()) return false;
   if (isIOS()) {
     iosTick();
     if (kind === "success" || kind === "warning" || kind === "error") setTimeout(iosTick, 120);
-    return;
+    return true;
   }
   try {
-    navigator.vibrate?.(PATTERN[kind]);
+    const base = PATTERN[kind];
+    const pattern = hapticStrength() === "strong" ? (Array.isArray(base) ? base.map((ms, i) => (i % 2 === 0 ? ms * 2 : ms)) : base * 2) : base;
+    return navigator.vibrate?.(pattern) ?? false;
   } catch {
     // Not supported (desktop Safari, Firefox): nothing to do.
+    return false;
   }
 }

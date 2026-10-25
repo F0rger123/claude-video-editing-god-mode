@@ -1,5 +1,6 @@
 import "server-only";
 import type { AdminClient } from "@/lib/supabase/admin";
+import { sendPush } from "./push";
 
 /**
  * Notification adapter. Every notification is first a row in content_notifications (in-app).
@@ -49,7 +50,7 @@ export async function notify(admin: AdminClient, n: NotifyInput): Promise<void> 
     job_id: n.jobId ?? null,
   });
   if (error) console.error("notify failed", error.message);
-  await Promise.allSettled(channels.map((c) => c.deliver(n)));
+  await Promise.allSettled([sendPush(admin, n), ...channels.map((c) => c.deliver(n))]);
 }
 
 export async function audit(

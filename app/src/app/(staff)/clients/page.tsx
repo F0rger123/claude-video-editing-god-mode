@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/link";
 import { createClient } from "@/lib/supabase/server";
 import { ButtonLink, EmptyState, Meter, PageHeader } from "@/components/ui";
 import { periodStarts } from "@/lib/domain/quota";

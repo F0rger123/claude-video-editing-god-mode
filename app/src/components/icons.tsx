@@ -38,6 +38,7 @@ const PATHS = {
   star: "M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-2.9-5.4 2.9 1.1-6-4.5-4.2 6.1-.8z",
   undo: "M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11",
   swipe: "M4 7h11M11 3l4 4-4 4M20 17H9M13 13l-4 4 4 4",
+  sdcard: "M8 3h9a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7.5zM10 3v4M13 3v4M16 3v4",
 } as const;
 
 export type IconName = keyof typeof PATHS;

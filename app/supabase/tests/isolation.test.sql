@@ -73,6 +73,11 @@ do $$ begin
   raise exception 'FAIL: secrets readable by owner session';
 exception when insufficient_privilege then null;
 end $$;
+do $$ begin
+  perform 1 from public.content_channel_tokens;
+  raise exception 'FAIL: YouTube tokens readable by owner session';
+exception when insufficient_privilege then null;
+end $$;
 
 -- ── Client A: only own workspace, only released versions, no internal data ──
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c1', true);

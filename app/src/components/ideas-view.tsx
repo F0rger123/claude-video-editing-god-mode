@@ -30,6 +30,7 @@ export function IdeasView({
   uploadHref,
   jobHref,
   canAdd,
+  makeHref,
 }: {
   fresh: Idea[];
   approved: Decided[];
@@ -39,6 +40,7 @@ export function IdeasView({
   uploadHref: string;
   jobHref: string;
   canAdd: boolean;
+  makeHref?: string;
 }) {
   const [tab, setTab] = useState<Tab>("new");
   const [mode, setMode] = useState<Mode>("swipe");
@@ -124,7 +126,7 @@ export function IdeasView({
           <IdeaList ideas={lists.fresh} canSwipe={canSwipe} onDecided={decided} />
         )
       ) : tab === "approved" ? (
-        <IdeaLibrary workspaceId={workspaceId} ideas={lists.approved as never} uploadHref={uploadHref} jobHref={jobHref} canAdd={canAdd} />
+        <IdeaLibrary workspaceId={workspaceId} ideas={lists.approved as never} uploadHref={uploadHref} jobHref={jobHref} canAdd={canAdd} makeHref={makeHref} />
       ) : (
         <PassedList ideas={lists.passed} canSwipe={canSwipe} onDecided={decided} />
       )}

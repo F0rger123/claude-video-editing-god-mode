@@ -12,6 +12,8 @@ import { BufferAdapter, PublishingError, mapRemoteStatus, platformFromService, t
 import { generateCopy } from "@/lib/integrations/captions";
 import { audit, notify } from "@/lib/integrations/notify";
 import { signedViewUrl } from "@/lib/integrations/storage";
+import { InstagramClient, PREPARE_AHEAD_MS, containerFromKey, containerKey, instagramApp, mediaKey, needsRefresh, nextContainerStep, userIdFromChannelKey } from "@/lib/integrations/instagram";
+import { YouTubeClient, fromKey, mapYouTubeState, watchUrl, youtubeApp, youtubeVideoKey } from "@/lib/integrations/youtube";
 
 /**
  * Workflow engine. Every state change that involves rules (quota, automation, approvals,
@@ -359,19 +361,21 @@ async function adapterFor(admin: AdminClient, workspaceId: string): Promise<Publ
   return key ? new BufferAdapter(key) : null;
 }
 
-async function setIntegration(admin: AdminClient, kind: "buffer" | "editor", workspaceId: string | null, status: "ok" | "disconnected" | "error" | "degraded", detail: Record<string, unknown>) {
+async function setIntegration(admin: AdminClient, kind: "buffer" | "editor" | "youtube" | "instagram", workspaceId: string | null, status: "ok" | "disconnected" | "error" | "degraded", detail: Record<string, unknown>) {
   const { data: current } = await admin.from("content_integrations").select("id, status").eq("kind", kind).filter("workspace_id", workspaceId ? "eq" : "is", workspaceId ?? null).maybeSingle();
   const row = { kind, workspace_id: workspaceId, status, detail, last_seen_at: status === "ok" ? new Date().toISOString() : undefined, updated_at: new Date().toISOString() };
   if (current) await admin.from("content_integrations").update(row).eq("id", current.id);
   else await admin.from("content_integrations").insert(row);
   if (current?.status === "ok" && status !== "ok") {
-    await notify(admin, { kind: "integration_disconnected", title: `${kind === "buffer" ? "Buffer" : "Editor"} needs attention`, body: String(detail.message ?? ""), workspaceId, link: "/settings" });
+    await notify(admin, { kind: "integration_disconnected", title: `${kind === "buffer" ? "Buffer" : kind === "youtube" ? "YouTube" : kind === "instagram" ? "Instagram" : "Editor"} needs attention`, body: String(detail.message ?? ""), workspaceId, link: "/settings" });
   }
 }
 
 export async function sendPostToBuffer(admin: AdminClient, postId: string): Promise<void> {
-  const { data: post } = await admin.from("content_posts").select("*, channel:content_channels(buffer_channel_id, workspace_id, is_disconnected), version:content_versions(storage_path)").eq("id", postId).single();
+  const { data: post } = await admin.from("content_posts").select("*, channel:content_channels(id, provider, name, buffer_channel_id, workspace_id, is_disconnected), version:content_versions(storage_path)").eq("id", postId).single();
   if (!post || post.status !== "approved" || post.buffer_post_id) return;
+  if (post.channel?.provider === "youtube") return sendPostToYouTube(admin, post);
+  if (post.channel?.provider === "instagram") return prepareInstagram(admin, post);
   const fail = async (message: string, retryable: boolean) => {
     await admin.from("content_posts").update({ status: retryable && post.attempts < 3 ? "approved" : "failed", last_error: message, attempts: post.attempts + 1 }).eq("id", post.id);
     if (!retryable || post.attempts >= 2) {
@@ -465,6 +469,261 @@ async function trackScheduled(admin: AdminClient) {
   }
 }
 
+// ── YouTube direct: upload approved posts, track them until they are live ──
+
+type YouTubePost = {
+  id: string; job_id: string; workspace_id: string; platform: Platform; status: string; attempts: number; scheduled_at: string | null;
+  caption: string | null; hashtags: string[] | null; cta: string | null; title: string | null; description: string | null;
+  channel: { id: string; name: string; workspace_id: string; is_disconnected: boolean } | null;
+  version: { storage_path: string | null } | null;
+};
+
+async function youtubeToken(admin: AdminClient, channelId: string): Promise<{ client: YouTubeClient; accessToken: string } | { error: string; auth: boolean }> {
+  const app = youtubeApp();
+  if (!app) return { error: "YouTube isn't set up on the server (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET).", auth: false };
+  const { data } = await admin.from("content_channel_tokens").select("refresh_token").eq("channel_id", channelId).maybeSingle();
+  if (!data?.refresh_token) return { error: "This YouTube channel isn't signed in. Connect it again on the client's Channels tab.", auth: true };
+  const client = new YouTubeClient(app);
+  try {
+    return { client, accessToken: await client.accessToken(data.refresh_token) };
+  } catch (e) {
+    const err = e as PublishingError;
+    return { error: err.message, auth: err.kind === "auth" };
+  }
+}
+
+async function disconnectYouTube(admin: AdminClient, channelId: string, workspaceId: string, message: string) {
+  await admin.from("content_channels").update({ is_disconnected: true }).eq("id", channelId);
+  await setIntegration(admin, "youtube", workspaceId, "disconnected", { message });
+}
+
+async function sendPostToYouTube(admin: AdminClient, post: YouTubePost): Promise<void> {
+  const fail = async (message: string, retryable: boolean) => {
+    await admin.from("content_posts").update({ status: retryable && post.attempts < 3 ? "approved" : "failed", last_error: message, attempts: post.attempts + 1 }).eq("id", post.id);
+    if (!retryable || post.attempts >= 2) {
+      await admin.from("content_jobs").update({ needs_attention: true, attention_reason: `Post failed: ${message}` }).eq("id", post.job_id);
+      await notify(admin, { kind: "publish_failed", title: "YouTube post failed", body: message, workspaceId: post.workspace_id, jobId: post.job_id, link: `/jobs/${post.job_id}#posts` });
+    }
+  };
+  // Hard isolation check, again, right before anything leaves the system.
+  if (!post.channel || post.channel.workspace_id !== post.workspace_id) return fail("Channel is not mapped to this workspace.", false);
+  if (post.channel.is_disconnected) return fail("The YouTube channel is signed out. Connect it again on the client's Channels tab.", false);
+  if (!post.version?.storage_path) return fail("Final video is missing.", false);
+  if (!post.scheduled_at) return fail("No posting time set.", false);
+  if (new Date(post.scheduled_at).getTime() < Date.now() - 5 * 60000) return fail("Posting time is in the past. Pick a new time.", false);
+
+  const token = await youtubeToken(admin, post.channel.id);
+  if ("error" in token) {
+    if (token.auth) await disconnectYouTube(admin, post.channel.id, post.workspace_id, token.error);
+    return fail(token.error, !token.auth);
+  }
+  const videoUrl = await signedViewUrl(admin, post.version.storage_path, 3600);
+  if (!videoUrl) return fail("Final video is missing from storage.", false);
+
+  // Claim the post so two passes running at once can never upload it twice.
+  const { count } = await admin.from("content_posts").update({ status: "publishing" }, { count: "exact" }).eq("id", post.id).eq("status", "approved").is("buffer_post_id", null);
+  if (!count) return;
+  try {
+    const source = await fetch(videoUrl);
+    const copy = { caption: post.caption ?? "", hashtags: post.hashtags ?? [], cta: post.cta, title: post.title, description: post.description };
+    const { videoId, scheduled } = await token.client.upload({
+      accessToken: token.accessToken,
+      source,
+      title: post.title || (post.caption ?? "").split("\n")[0] || "New video",
+      description: composeText("youtube", copy),
+      tags: post.hashtags ?? [],
+      dueAt: new Date(post.scheduled_at),
+    });
+    await admin.from("content_posts").update({
+      status: scheduled ? "scheduled" : "published",
+      buffer_post_id: youtubeVideoKey(videoId),
+      buffer_status: scheduled ? "scheduled on YouTube" : "public",
+      external_url: watchUrl(videoId),
+      published_at: scheduled ? null : new Date().toISOString(),
+      last_error: null,
+      attempts: post.attempts + 1,
+    }).eq("id", post.id);
+    await setIntegration(admin, "youtube", post.workspace_id, "ok", {});
+  } catch (e) {
+    const err = e as PublishingError;
+    await admin.from("content_posts").update({ status: "approved" }).eq("id", post.id).eq("status", "publishing");
+    if (err.kind === "auth") await disconnectYouTube(admin, post.channel.id, post.workspace_id, err.message);
+    await fail(err.message ?? String(e), err.kind === "network" || err.kind === "rate_limit" || !err.kind);
+  }
+}
+
+async function trackYouTube(admin: AdminClient) {
+  const { data: posts } = await admin
+    .from("content_posts")
+    .select("id, job_id, workspace_id, status, scheduled_at, buffer_post_id, buffer_status, channel_id")
+    .eq("status", "scheduled")
+    .like("buffer_post_id", "youtube:%")
+    .lte("scheduled_at", new Date(Date.now() + 600e3).toISOString())
+    .limit(200);
+  const byChannel = new Map<string, NonNullable<typeof posts>>();
+  for (const p of posts ?? []) if (p.channel_id) byChannel.set(p.channel_id, [...(byChannel.get(p.channel_id) ?? []), p]);
+  for (const [channelId, list] of byChannel) {
+    const token = await youtubeToken(admin, channelId);
+    if ("error" in token) {
+      if (token.auth) await disconnectYouTube(admin, channelId, list[0].workspace_id, token.error);
+      continue;
+    }
+    try {
+      const states = await token.client.videoStates(token.accessToken, list.map((p) => fromKey(p.buffer_post_id as string)!).filter(Boolean));
+      for (const p of list) {
+        const state = states.get(fromKey(p.buffer_post_id as string)!);
+        const mapped = mapYouTubeState(state, new Date(p.scheduled_at as string));
+        if (!mapped) continue;
+        if (mapped === "published") {
+          await admin.from("content_posts").update({ status: "published", buffer_status: state!.privacyStatus, published_at: new Date().toISOString(), last_error: null }).eq("id", p.id);
+          continue;
+        }
+        if (mapped === "stuck_private") {
+          // The video is on YouTube, just private: keep watching (so it flips to Published once someone makes it
+          // public in YouTube Studio) and warn once. Never re-upload, that would make a duplicate.
+          if (p.buffer_status === "kept private") continue;
+          const note = "YouTube kept this video private. Uploads from a Google project that has not passed the YouTube API audit stay private: make it public in YouTube Studio (docs/YOUTUBE.md has the audit steps).";
+          await admin.from("content_posts").update({ buffer_status: "kept private", last_error: note }).eq("id", p.id);
+          await admin.from("content_jobs").update({ needs_attention: true, attention_reason: note }).eq("id", p.job_id);
+          await notify(admin, { kind: "publish_failed", title: "YouTube kept a video private", body: note, workspaceId: p.workspace_id, jobId: p.job_id, link: `/jobs/${p.job_id}#posts` });
+          continue;
+        }
+        const message = `YouTube ${state ? `marked the upload ${state.uploadStatus}${state.reason ? ` (${state.reason})` : ""}` : "no longer has this video"}.`;
+        await admin.from("content_posts").update({ status: "failed", buffer_status: state?.uploadStatus ?? "deleted", last_error: message }).eq("id", p.id);
+        await admin.from("content_jobs").update({ needs_attention: true, attention_reason: message }).eq("id", p.job_id);
+        await notify(admin, { kind: "publish_failed", title: "YouTube needs a look", body: message, workspaceId: p.workspace_id, jobId: p.job_id, link: `/jobs/${p.job_id}#posts` });
+      }
+    } catch (e) {
+      console.error("youtube tracking failed", (e as Error).message);
+    }
+  }
+}
+
+// ── Instagram direct: hand Instagram the Reel shortly before its time, publish it at the time ──
+
+async function instagramToken(admin: AdminClient, channelId: string): Promise<{ client: InstagramClient; token: string } | { error: string; auth: boolean }> {
+  const app = instagramApp();
+  if (!app) return { error: "Instagram isn't set up on the server (INSTAGRAM_APP_ID / INSTAGRAM_APP_SECRET).", auth: false };
+  const { data } = await admin.from("content_channel_tokens").select("refresh_token, updated_at, expires_at").eq("channel_id", channelId).maybeSingle();
+  if (!data?.refresh_token) return { error: "This Instagram account isn't signed in. Connect it again on the client's Channels tab.", auth: true };
+  const client = new InstagramClient(app);
+  if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) return { error: "The Instagram sign-in ran out (60 days). Connect the account again.", auth: true };
+  if (needsRefresh(data.updated_at, data.expires_at)) {
+    try {
+      const fresh = await client.refresh(data.refresh_token);
+      await admin.from("content_channel_tokens").update({ refresh_token: fresh.token, expires_at: fresh.expiresAt, updated_at: new Date().toISOString() }).eq("channel_id", channelId);
+      return { client, token: fresh.token };
+    } catch (e) {
+      const err = e as PublishingError;
+      if (err.kind === "auth") return { error: err.message, auth: true };
+      // A failed refresh isn't fatal while the old token still works.
+    }
+  }
+  return { client, token: data.refresh_token };
+}
+
+async function disconnectInstagram(admin: AdminClient, channelId: string, workspaceId: string, message: string) {
+  await admin.from("content_channels").update({ is_disconnected: true }).eq("id", channelId);
+  await setIntegration(admin, "instagram", workspaceId, "disconnected", { message });
+}
+
+async function failInstagram(admin: AdminClient, post: { id: string; job_id: string; workspace_id: string; attempts: number }, message: string, retryable: boolean) {
+  const retry = retryable && post.attempts < 3;
+  await admin.from("content_posts").update({ status: retry ? "approved" : "failed", buffer_post_id: null, buffer_status: null, last_error: message, attempts: post.attempts + 1 }).eq("id", post.id);
+  if (!retry) {
+    await admin.from("content_jobs").update({ needs_attention: true, attention_reason: `Post failed: ${message}` }).eq("id", post.job_id);
+    await notify(admin, { kind: "publish_failed", title: "Instagram post failed", body: message, workspaceId: post.workspace_id, jobId: post.job_id, link: `/jobs/${post.job_id}#posts` });
+  }
+}
+
+type InstagramPost = YouTubePost & { channel: (YouTubePost["channel"] & { buffer_channel_id: string }) | null };
+
+async function prepareInstagram(admin: AdminClient, post: InstagramPost): Promise<void> {
+  if (!post.scheduled_at) return failInstagram(admin, post, "No posting time set.", false);
+  const due = new Date(post.scheduled_at).getTime();
+  if (due - Date.now() > PREPARE_AHEAD_MS) return; // not yet: Instagram can't hold a post for later
+  if (due < Date.now() - 30 * 60000) return failInstagram(admin, post, "The posting time passed while the app couldn't post. Pick a new time.", false);
+  // Hard isolation check, again, right before anything leaves the system.
+  if (!post.channel || post.channel.workspace_id !== post.workspace_id) return failInstagram(admin, post, "Channel is not mapped to this workspace.", false);
+  if (post.channel.is_disconnected) return failInstagram(admin, post, "The Instagram account is signed out. Connect it again on the client's Channels tab.", false);
+  const igUser = userIdFromChannelKey(post.channel.buffer_channel_id);
+  if (!igUser) return failInstagram(admin, post, "Channel is not an Instagram account.", false);
+  if (!post.version?.storage_path) return failInstagram(admin, post, "Final video is missing.", false);
+
+  const auth = await instagramToken(admin, post.channel.id);
+  if ("error" in auth) {
+    if (auth.auth) await disconnectInstagram(admin, post.channel.id, post.workspace_id, auth.error);
+    return failInstagram(admin, post, auth.error, !auth.auth);
+  }
+  // Instagram fetches the file itself, so the link has to stay valid while it processes.
+  const videoUrl = await signedViewUrl(admin, post.version.storage_path, 6 * 3600);
+  if (!videoUrl) return failInstagram(admin, post, "Final video is missing from storage.", false);
+
+  // Claim the post so two passes running at once can never upload it twice.
+  const { count } = await admin.from("content_posts").update({ status: "publishing" }, { count: "exact" }).eq("id", post.id).eq("status", "approved").is("buffer_post_id", null);
+  if (!count) return;
+  try {
+    const copy = { caption: post.caption ?? "", hashtags: post.hashtags ?? [], cta: post.cta, title: post.title, description: post.description };
+    const container = await auth.client.createReel(auth.token, igUser, { videoUrl, caption: composeText("instagram", copy) });
+    await admin.from("content_posts").update({ status: "scheduled", buffer_post_id: containerKey(container), buffer_status: "processing", last_error: null }).eq("id", post.id);
+    await setIntegration(admin, "instagram", post.workspace_id, "ok", {});
+  } catch (e) {
+    const err = e as PublishingError;
+    await admin.from("content_posts").update({ status: "approved" }).eq("id", post.id).eq("status", "publishing");
+    if (err.kind === "auth") await disconnectInstagram(admin, post.channel.id, post.workspace_id, err.message);
+    await failInstagram(admin, post, err.message ?? String(e), err.kind === "network" || err.kind === "rate_limit" || !err.kind);
+  }
+}
+
+async function trackInstagram(admin: AdminClient) {
+  const { data: posts } = await admin
+    .from("content_posts")
+    .select("id, job_id, workspace_id, attempts, scheduled_at, updated_at, buffer_post_id, buffer_status, channel:content_channels(id, buffer_channel_id)")
+    .eq("status", "scheduled")
+    .like("buffer_post_id", "igc:%")
+    .limit(100);
+  const tokens = new Map<string, Awaited<ReturnType<typeof instagramToken>>>();
+  for (const p of posts ?? []) {
+    const ch = p.channel as unknown as { id: string; buffer_channel_id: string } | null;
+    const igUser = ch ? userIdFromChannelKey(ch.buffer_channel_id) : null;
+    const container = containerFromKey(p.buffer_post_id as string);
+    if (!ch || !igUser || !container) continue;
+    if (!tokens.has(ch.id)) tokens.set(ch.id, await instagramToken(admin, ch.id));
+    const auth = tokens.get(ch.id)!;
+    if ("error" in auth) {
+      if (auth.auth) await disconnectInstagram(admin, ch.id, p.workspace_id, auth.error);
+      continue;
+    }
+    try {
+      const { status, detail } = await auth.client.containerStatus(auth.token, container);
+      const step = nextContainerStep(status, new Date(p.scheduled_at as string), new Date(p.updated_at as string));
+      if (step === "wait") continue;
+      if (step === "retry") {
+        await failInstagram(admin, p, status === "EXPIRED" ? "Instagram dropped the upload before it could be posted." : `Instagram couldn't process the video${detail ? ` (${detail})` : ""}. Check it's an MP4 (H.264, AAC), 3 s to 15 min, under 300 MB.`, status !== "ERROR");
+        continue;
+      }
+      if (step === "already") {
+        await admin.from("content_posts").update({ status: "published", buffer_status: "published", published_at: new Date().toISOString(), last_error: null }).eq("id", p.id);
+        continue;
+      }
+      // Claim the publish: two passes at once must never post it twice.
+      const { count } = await admin.from("content_posts").update({ buffer_status: "publishing" }, { count: "exact" }).eq("id", p.id).eq("buffer_status", p.buffer_status ?? "processing").neq("buffer_status", "publishing");
+      if (!count) continue;
+      try {
+        const { mediaId, permalink } = await auth.client.publish(auth.token, igUser, container);
+        await admin.from("content_posts").update({ status: "published", buffer_post_id: mediaKey(mediaId), buffer_status: "published", external_url: permalink, published_at: new Date().toISOString(), last_error: null }).eq("id", p.id);
+      } catch (e) {
+        const err = e as PublishingError;
+        await admin.from("content_posts").update({ buffer_status: "ready", last_error: err.message }).eq("id", p.id);
+        if (err.kind === "auth") await disconnectInstagram(admin, ch.id, p.workspace_id, err.message);
+        else if (err.kind === "invalid") await failInstagram(admin, p, err.message, false);
+      }
+    } catch (e) {
+      console.error("instagram tracking failed", (e as Error).message);
+    }
+  }
+}
+
 /** Job status follows its posts: any scheduled → Scheduled; all live → Published. */
 async function rollUpJobs(admin: AdminClient) {
   const { data: jobs } = await admin.from("content_jobs").select("*").in("status", ["approved", "scheduled", "publishing"]).limit(200);
@@ -519,12 +778,15 @@ export async function tick(admin: AdminClient) {
   }
   report.planned = planned;
 
-  // 3. Approved posts go to Buffer.
-  const { data: ready } = await admin.from("content_posts").select("id").eq("status", "approved").is("buffer_post_id", null).eq("caption_approved", true).limit(20);
+  // 3. Approved posts go to Buffer, or straight to YouTube for direct YouTube channels.
+  // Soonest first: Instagram posts wait here (approved) until shortly before their time.
+  const { data: ready } = await admin.from("content_posts").select("id").eq("status", "approved").is("buffer_post_id", null).eq("caption_approved", true).order("scheduled_at", { ascending: true }).limit(30);
   for (const p of ready ?? []) await sendPostToBuffer(admin, p.id).catch((e) => console.error("send", e.message));
   report.sent = ready?.length ?? 0;
 
   await trackScheduled(admin);
+  await trackYouTube(admin);
+  await trackInstagram(admin);
   await rollUpJobs(admin);
   await checkEditorHeartbeat(admin);
   return report;

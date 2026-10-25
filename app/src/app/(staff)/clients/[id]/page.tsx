@@ -1,5 +1,5 @@
 import { AGENCY_NAME } from "@/lib/brand";
-import Link from "next/link";
+import Link from "@/components/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
@@ -12,13 +12,40 @@ import type { PackageLimits, Workspace } from "@/lib/domain/types";
 import { formatAgo } from "@/lib/format";
 import { ClientForm } from "../client-form";
 import { StylesTab } from "./styles-tab";
+import { BrandTab, ProjectsTab, type BrandAsset } from "./brand-tab";
+import { signedViewUrls } from "@/lib/integrations/storage";
+import { youtubeApp } from "@/lib/integrations/youtube";
+import { instagramApp } from "@/lib/integrations/instagram";
 import { archiveClient, inviteMember, mapChannel, saveBufferKey, updateClientWorkspace, updateMember } from "../actions";
 
 export const metadata = { title: "Client" };
 
-export default async function ClientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; tab?: string }> }) {
+const YT_RESULT: Record<string, { tone: "neutral" | "danger"; text: string }> = {
+  connected: { tone: "neutral", text: "YouTube connected. Approved videos for this client now upload straight to YouTube at their posting time." },
+  cancelled: { tone: "danger", text: "YouTube wasn't connected: the Google sign-in was cancelled." },
+  expired: { tone: "danger", text: "That sign-in link expired. Tap Connect YouTube again." },
+  taken: { tone: "danger", text: "That YouTube channel already posts for another client. A channel can only post for one client." },
+  "no-channel": { tone: "danger", text: "That Google account has no YouTube channel. Pick the account (or brand account) that owns the channel." },
+  "no-upload": { tone: "danger", text: "Google didn't allow uploads. Connect again and tick \"Manage your YouTube videos\"." },
+  "no-offline": { tone: "danger", text: "Google didn't give a lasting sign-in. Remove the app at myaccount.google.com/permissions, then connect again." },
+  "not-set-up": { tone: "danger", text: "YouTube posting isn't set up on the server yet: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are missing. See docs/YOUTUBE.md." },
+  failed: { tone: "danger", text: "YouTube couldn't be connected. Try again in a minute." },
+};
+
+const IG_RESULT: Record<string, { tone: "neutral" | "danger"; text: string }> = {
+  connected: { tone: "neutral", text: "Instagram connected. Approved Reels for this client now post straight to Instagram at their posting time." },
+  cancelled: { tone: "danger", text: "Instagram wasn't connected: the sign-in was cancelled." },
+  expired: { tone: "danger", text: "That sign-in link expired. Tap Connect Instagram again." },
+  taken: { tone: "danger", text: "That Instagram account already posts for another client. An account can only post for one client." },
+  personal: { tone: "danger", text: "That's a personal Instagram account, which can't post through apps. In Instagram, switch it to a Professional (Creator or Business) account, then connect again." },
+  "no-publish": { tone: "danger", text: "Instagram didn't allow posting. Connect again and allow content publishing." },
+  "not-set-up": { tone: "danger", text: "Instagram posting isn't set up on the server yet: INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET are missing. See docs/INSTAGRAM.md." },
+  failed: { tone: "danger", text: "Instagram couldn't be connected. If it's not your own account, Meta has to approve the app first (docs/INSTAGRAM.md)." },
+};
+
+export default async function ClientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; tab?: string; yt?: string; ig?: string }> }) {
   const { id } = await params;
-  const { created, tab = "overview" } = await searchParams;
+  const { created, tab = "overview", yt, ig } = await searchParams;
   const supabase = await createClient();
   const { data: ws } = await supabase.from("content_workspaces").select("*").eq("id", id).maybeSingle();
   if (!ws) notFound();
@@ -32,6 +59,16 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
     admin ? admin.from("content_secrets").select("kind").eq("workspace_id", id).eq("kind", "buffer_api_key").maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const { data: presetRows } = tab === "styles" ? await supabase.from("content_style_presets").select("id, kind, name, instructions, is_default").eq("workspace_id", id).is("archived_at", null).order("name") : { data: [] };
+  const wantsKit = tab === "brand" || tab === "projects";
+  const [{ data: assetRows }, { data: projectRows }, { data: projectJobs }] = wantsKit
+    ? await Promise.all([
+        supabase.from("content_brand_assets").select("id, kind, name, notes, value, url, file_name, mime_type, is_primary, project_id, storage_path").eq("workspace_id", id).is("archived_at", null).order("sort").order("created_at"),
+        supabase.from("content_projects").select("id, name, brief, status").eq("workspace_id", id).order("status").order("created_at", { ascending: false }),
+        supabase.from("content_jobs").select("project_id").eq("workspace_id", id).not("project_id", "is", null),
+      ])
+    : [{ data: [] }, { data: [] }, { data: [] }];
+  const previews = admin && assetRows?.length ? await signedViewUrls(admin, assetRows.filter((a) => a.storage_path && a.mime_type?.startsWith("image/")).map((a) => a.storage_path as string), 3600) : new Map<string, string>();
+  const brandAssets: BrandAsset[] = (assetRows ?? []).map(({ storage_path, ...a }) => ({ ...(a as Omit<BrandAsset, "preview">), preview: storage_path ? previews.get(storage_path) ?? null : null }));
   const { data: presetRefs } = presetRows?.length ? await supabase.from("content_media").select("preset_id").in("preset_id", presetRows.map((p) => p.id)) : { data: [] };
   let remote: Awaited<ReturnType<typeof syncChannels>>["channels"] = [];
   let bufferError: string | null = null;
@@ -50,6 +87,8 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
     ["overview", "Overview"],
     ["portal", "Portal"],
     ["channels", "Channels"],
+    ["brand", "Brand kit"],
+    ["projects", "Projects"],
     ["styles", "Styles"],
     ["settings", "Settings"],
   ] as const;
@@ -140,7 +179,11 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
                 <li key={c.id} className="flex items-center gap-3 rounded-2xl border border-rule px-4 py-3">
                   <PlatformTag platform={c.platform} />
                   <span className="min-w-0 flex-1 truncate">{c.name}</span>
-                  {c.is_disconnected ? <span className="text-xs text-danger">disconnected in Buffer</span> : <span className="text-xs text-ash">synced {formatAgo(c.synced_at)}</span>}
+                  {c.is_disconnected ? (
+                    <span className="text-xs text-danger">{c.provider === "buffer" ? "disconnected in Buffer" : "signed out"}</span>
+                  ) : (
+                    <span className="text-xs text-ash">{c.provider === "buffer" ? `synced ${formatAgo(c.synced_at)}` : "direct"}</span>
+                  )}
                   <ActionForm action={mapChannel}>
                     <input type="hidden" name="id" value={id} />
                     <input type="hidden" name="channel" value={c.buffer_channel_id} />
@@ -148,8 +191,36 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
                   </ActionForm>
                 </li>
               ))}
-              {!(channels ?? []).length ? <p className="text-sm text-ash">No channels yet. Pick from Buffer below.</p> : null}
+              {!(channels ?? []).length ? <p className="text-sm text-ash">No channels yet. Connect YouTube directly, or pick from Buffer below.</p> : null}
             </ul>
+          </Section>
+          <Section title="YouTube, direct">
+            {yt && YT_RESULT[yt] ? <div className="mb-3"><Notice tone={YT_RESULT[yt].tone}>{YT_RESULT[yt].text}</Notice></div> : null}
+            <p className="mb-3 text-sm text-ash">
+              Uploads straight to YouTube, no Buffer. Sign in with the Google account that owns {w.is_agency ? "your" : `${w.name}'s`} channel, or one the client added as a channel manager.
+            </p>
+            {youtubeApp() ? (
+              // A plain link: this leaves the app for Google's sign-in page.
+              <a href={`/api/youtube/connect?ws=${id}`} className="press inline-flex h-11 items-center gap-2 rounded-full bg-bone px-5 text-sm font-medium text-ink">
+                {(channels ?? []).some((c) => c.provider === "youtube") ? "Connect another YouTube channel" : "Connect YouTube"}
+              </a>
+            ) : (
+              <Notice tone="neutral">Not set up on the server yet: the owner adds the Google app keys once (docs/YOUTUBE.md, about 10 minutes).</Notice>
+            )}
+          </Section>
+          <Section title="Instagram, direct">
+            {ig && IG_RESULT[ig] ? <div className="mb-3"><Notice tone={IG_RESULT[ig].tone}>{IG_RESULT[ig].text}</Notice></div> : null}
+            <p className="mb-3 text-sm text-ash">
+              Posts Reels straight to Instagram, no Buffer. Needs a Professional (Creator or Business) account. Your own accounts work right away; a client&apos;s account needs Meta to approve the app first.
+            </p>
+            {instagramApp() ? (
+              // A plain link: this leaves the app for Instagram's sign-in page.
+              <a href={`/api/instagram/connect?ws=${id}`} className="press inline-flex h-11 items-center gap-2 rounded-full bg-bone px-5 text-sm font-medium text-ink">
+                {(channels ?? []).some((c) => c.provider === "instagram") ? "Connect another Instagram account" : "Connect Instagram"}
+              </a>
+            ) : (
+              <Notice tone="neutral">Not set up on the server yet: the owner adds the Meta app keys once (docs/INSTAGRAM.md, about 15 minutes).</Notice>
+            )}
           </Section>
           <Section title="Available in Buffer">
             {bufferError ? <Notice tone="danger">{bufferError}</Notice> : null}
@@ -185,6 +256,15 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
 
       {tab === "styles" ? (
         <StylesTab workspaceId={id} presets={(presetRows ?? []).map((p) => ({ ...p, refs: (presetRefs ?? []).filter((m) => m.preset_id === p.id).length }))} />
+      ) : null}
+
+      {tab === "brand" ? <BrandTab workspaceId={id} name={w.name} assets={brandAssets} /> : null}
+      {tab === "projects" ? (
+        <ProjectsTab
+          workspaceId={id}
+          assets={brandAssets}
+          projects={(projectRows ?? []).map((p) => ({ ...p, videos: (projectJobs ?? []).filter((j) => j.project_id === p.id).length }))}
+        />
       ) : null}
 
       {tab === "settings" ? (

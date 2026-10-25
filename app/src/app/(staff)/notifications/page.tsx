@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/link";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth";

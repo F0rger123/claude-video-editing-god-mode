@@ -7,7 +7,9 @@
  *    dropped whenever a new version of the app is deployed (the registration URL carries the build id).
  *  - Never cached: sign-in, password reset, email-link callbacks, /api, non-GET, other sites.
  */
-const VERSION = new URL(self.location.href).searchParams.get("v") || "v4";
+// Stamped on every deploy (scripts/stamp-sw.mjs): a new value makes browsers install this worker.
+const BUILD = "20261025035954";
+const VERSION = `v5-${BUILD}`;
 const STATIC = `azve-static-${VERSION}`;
 const PAGES = `azve-pages-${VERSION}`;
 const OFFLINE = "/offline.html";
@@ -91,5 +93,38 @@ self.addEventListener("fetch", (event) => {
         return (await caches.match(OFFLINE)) || Response.error();
       }
     })(),
+  );
+});
+
+// ── Phone notifications (Web Push): edit ready, client upload, post failed… ──
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "New update", body: event.data ? event.data.text() : "" };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "New update", {
+      body: data.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/badge-96.png",
+      tag: data.tag || undefined,
+      renotify: Boolean(data.tag),
+      data: { url: data.url || "/" },
+      vibrate: [30, 60, 40],
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = new URL((event.notification.data && event.notification.data.url) || "/", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      const open = wins.find((w) => new URL(w.url).origin === self.location.origin);
+      if (open) return open.focus().then(() => ("navigate" in open ? open.navigate(url) : null));
+      return self.clients.openWindow(url);
+    }),
   );
 });

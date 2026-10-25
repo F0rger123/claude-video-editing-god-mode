@@ -1,8 +1,10 @@
-import Link from "next/link";
+import Link from "@/components/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
-import { signedViewUrls } from "@/lib/integrations/storage";
+import { signedViewUrl, signedViewUrls } from "@/lib/integrations/storage";
+import { SaveVideo } from "@/components/save-video";
+import { AddReference } from "@/components/add-reference";
 import { MediaThumb } from "@/components/media-thumb";
 import { ActionForm, SubmitButton } from "@/components/form";
 import { ButtonLink, Notice, PageHeader, Section, StatusPill } from "@/components/ui";
@@ -13,6 +15,7 @@ import { ReviewPanel } from "./review-panel";
 import { ProgressSteps } from "@/components/progress-steps";
 import { PostEditor, type PostRow } from "./post-editor";
 import { decide, jobStatusAction, updateJob } from "./actions";
+import { Eta } from "@/components/live";
 
 export const metadata = { title: "Video" };
 
@@ -40,6 +43,8 @@ export default async function JobPage({ params, searchParams }: { params: Promis
     ? await signedViewUrls(createAdminClient(), [...(versions ?? []).map((x) => x.storage_path), ...(media ?? []).map((m) => m.storage_path).filter(Boolean)] as string[], 3600)
     : new Map<string, string>();
   const status = job.status as JobStatus;
+  const downloadName = `${job.title.replace(/[^\w\- ]+/g, "").trim().slice(0, 60) || "edit"}${current ? ` V${current.number}` : ""}.mp4`;
+  const downloadUrl = current && isAdminConfigured() ? await signedViewUrl(createAdminClient(), current.storage_path, 3600, downloadName) : null;
   const canDecide = status === "review" && job.review_stage === "agency" && current?.id === job.current_version_id;
   const versionFeedback = (feedback ?? []).filter((f) => !current || f.version_id === current.id || f.version_id === null);
   const editorRef = (internal?.editor_ref ?? {}) as { needs_review?: string; paused?: string; drive_clip?: string; project?: string };
@@ -62,7 +67,13 @@ export default async function JobPage({ params, searchParams }: { params: Promis
         }
       />
 
-      <ProgressSteps status={status} note={editorRef.paused ? `Editor paused (${editorRef.paused}); it resumes by itself.` : ["queued", "editing", "rendering"].includes(status) ? `Updated ${formatAgo(job.updated_at)}. The editor reports progress every few minutes.` : null} />
+      <ProgressSteps status={status} note={editorRef.paused ? `Editor paused (${editorRef.paused}); it resumes by itself.` : ["queued", "editing", "rendering"].includes(status) ? `Updated ${formatAgo(job.updated_at)}. This page updates by itself.` : null} />
+      {["queued", "editing", "rendering"].includes(status) && job.eta_at ? (
+        <p className="-mt-3 mb-6 flex items-center gap-2 text-sm font-medium">
+          <span className="size-2 animate-pulse rounded-full bg-bone" />
+          <Eta eta={job.eta_at} status={status} />
+        </p>
+      ) : null}
 
       {job.needs_attention ? (
         <div className="mb-4">
@@ -75,7 +86,7 @@ export default async function JobPage({ params, searchParams }: { params: Promis
           </Notice>
         </div>
       ) : null}
-      {editorRef.needs_review ? <div className="mb-4"><Notice>Editor flagged this edit: {editorRef.needs_review}</Notice></div> : null}
+      {editorRef.needs_review && !job.needs_attention ? <div className="mb-4"><Notice>Editor flagged this edit: {editorRef.needs_review}</Notice></div> : null}
       {editorRef.paused ? <div className="mb-4"><Notice tone="neutral">Editor paused: {editorRef.paused}. It resumes by itself.</Notice></div> : null}
       {status === "failed" && internal?.last_error ? <div className="mb-4"><Notice tone="danger">{internal.last_error}</Notice></div> : null}
 
@@ -124,6 +135,8 @@ export default async function JobPage({ params, searchParams }: { params: Promis
         </div>
       )}
 
+      {current && downloadUrl ? <SaveVideo url={downloadUrl} fileName={downloadName} /> : null}
+
       {(versions ?? []).length ? (
         <Section title="Versions" count={versions!.length}>
           <ul className="divide-y divide-rule rounded-2xl border border-rule">
@@ -158,6 +171,7 @@ export default async function JobPage({ params, searchParams }: { params: Promis
       </Section>
 
       <Section title="Source files" count={media?.length ?? 0} action={<ButtonLink href={`/upload?job=${id}`} variant="ghost" icon="plus" className="h-9 px-3.5 text-xs">Add footage</ButtonLink>}>
+        <div className="mb-3"><AddReference jobId={id} workspaceId={job.workspace_id} /></div>
         {(media ?? []).length ? (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             {(media ?? []).map((m) => (

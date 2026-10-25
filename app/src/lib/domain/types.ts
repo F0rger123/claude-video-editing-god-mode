@@ -183,7 +183,23 @@ export type Workspace = {
 export type PostTiming = "auto_slot" | "after_edit" | "fixed";
 
 /** Per-upload style picks: a preset id, or "auto" = let Claude decide from the brand's references. */
-export type StyleChoices = { captions?: string; sound?: string; edit?: string; notes?: string; /** Library items (sound effects, overlays, LUTs…) to use in this video. */ materials?: string[] };
+export type StyleChoices = {
+  captions?: string;
+  sound?: string;
+  edit?: string;
+  notes?: string;
+  /** Library items (sound effects, overlays, LUTs…) to use in this video. */
+  materials?: string[];
+  /** Exact colors for this video (#rrggbb), on top of / instead of the brand's. */
+  colors?: string[];
+  /** Use this workspace's brand kit instead of the video's own (e.g. a client's look on a quick edit). */
+  brand_from?: string;
+  /** A caption style picked for this video (resolved to the editor instruction at upload). */
+  caption_preset?: { id: string; name: string; instruction: string };
+  /** Extra passes: clean up the voice, follow the face with CapCut-style zooms. */
+  voice_polish?: boolean;
+  face_track?: boolean;
+};
 
 export type Permissions = {
   can_upload: boolean;

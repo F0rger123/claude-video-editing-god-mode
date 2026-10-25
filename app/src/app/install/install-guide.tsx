@@ -1,7 +1,7 @@
 "use client";
 
-import { APP_SHORT_NAME } from "@/lib/brand";
-import Link from "next/link";
+import { APP_SHORT_NAME, ANDROID_APK_URL } from "@/lib/brand";
+import Link from "@/components/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { Sheet } from "@/components/sheet";
 import { Icon } from "@/components/icons";
@@ -128,14 +128,16 @@ export function InstallGuide() {
         </ol>
       ) : (
         <>
+        {ANDROID_APK_URL ? (
         <div className="mb-4 rounded-3xl border border-rule bg-char p-5">
           <p className="font-semibold">Android app (APK)</p>
           <p className="mt-1 text-sm text-mist">The same app as a normal Android download. After it downloads, tap it and allow &ldquo;Install unknown apps&rdquo; for Chrome when Android asks.</p>
-          <a href="/downloads/az-video-editor.apk" download className="press mt-4 flex h-12 items-center justify-center gap-2 rounded-full bg-bone text-sm font-semibold text-ink">
+          <a href={ANDROID_APK_URL} download className="press mt-4 flex h-12 items-center justify-center gap-2 rounded-full bg-bone text-sm font-semibold text-ink">
             <Icon name="phone" className="size-4" /> Download the Android app
           </a>
           <p className="mt-3 text-xs text-ash">Or install it straight from Chrome:</p>
         </div>
+        ) : null}
         <ol className="grid gap-3 sm:grid-cols-2">
           <Step n={1} title="Tap the ⋮ menu" body="Top right in Chrome. If an Install button showed above, just tap that instead." art={<AndroidStep1 />} />
           <Step n={2} title="Tap “Install app”" body="Some phones say “Add to Home screen”. Then tap Install." art={<AndroidStep2 />} />

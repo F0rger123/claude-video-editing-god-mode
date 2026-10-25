@@ -21,7 +21,9 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import { aboutText, brandDirs, brandFor, clipBaseFor, DIRECT_FILE, editNote, findAgainEntry, ideaRequestPrompt, libraryIndexText, libraryTarget, newOptions, parseCaptionJson, parseFullIdeas, parseIdeas, safePart, scriptPrompt, shouldWriteAbout, statusFromEditor, VIDEO_EXT } from "./lib.mjs";
+import { backupPass } from "./backup.mjs";
+import { downloadReference } from "./references.mjs";
+import { aboutText, brandDirs, brandKitFileName, estimateEtas, typicalEditMs, brandFor, clipBaseFor, DIRECT_FILE, editNote, findAgainEntry, ideaRequestPrompt, libraryIndexText, libraryTarget, newOptions, parseCaptionJson, parseFullIdeas, parseIdeas, safePart, scriptPrompt, shouldWriteAbout, statusFromEditor, VIDEO_EXT } from "./lib.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, "..");
@@ -50,6 +52,8 @@ const APP_URL = (env.APP_URL || env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "
 const MAX_WAITING_DROPS = Number(env.BRIDGE_MAX_WAITING || 2);
 const CAPTIONS = env.BRIDGE_CAPTIONS !== "0";
 const IMPORT_DRIVE = env.BRIDGE_IMPORT_DRIVE !== "0";
+// Copy the editor folder to Google Drive ("My Drive\God Mode Cut backup", or BACKUP_FOLDER) every 30 minutes. Set 0 to turn off.
+const BACKUP = env.BRIDGE_DRIVE_BACKUP !== "0";
 const STATE_DIR = path.join(HERE, ".state");
 const STATE_FILE = path.join(STATE_DIR, "state.json");
 const LOCK = path.join(STATE_DIR, IDEAS_ONLY ? "ideas.lock" : "run.lock");
@@ -177,6 +181,49 @@ async function syncBrands(workspaces) {
   }
 }
 
+// ── 1b. Brand kit: files kept in "<brand>/Brand kit/", downloaded once, described in each edit note ──
+const KIT_GROUP = { logo: "logos", watermark: "watermarks", color: "colors", font: "fonts", intro: "intros", outro: "outros", music: "music", photo: "photos", reference: "references", other: "references" };
+async function syncBrandKit(ws, brandRoot) {
+  const { data: assets } = await db.from("content_brand_assets").select("id, kind, name, notes, value, url, storage_path, file_name, is_primary").eq("workspace_id", ws.id).is("project_id", null).is("archived_at", null).order("sort");
+  if (!assets?.length) return null;
+  const kit = {};
+  for (const a of assets) {
+    let local = null;
+    if (a.storage_path) {
+      local = path.join(brandRoot, "Brand kit", brandKitFileName(a));
+      if (!fs.existsSync(local) && !DRY) {
+        try {
+          await download(a.storage_path, local);
+        } catch (e) {
+          log(`Brand kit download failed (${a.name}): ${e.message}`);
+          local = null;
+        }
+      }
+    }
+    (kit[KIT_GROUP[a.kind] || "references"] ||= []).push({ name: a.name, notes: a.notes, value: a.value, url: a.url, path: local, primary: a.is_primary });
+  }
+  return kit;
+}
+
+async function projectFor(projectId, extraDir) {
+  const { data: p } = await db.from("content_projects").select("name, brief").eq("id", projectId).maybeSingle();
+  if (!p) return null;
+  const { data: refs } = await db.from("content_brand_assets").select("id, name, url, storage_path, file_name").eq("project_id", projectId).is("archived_at", null).limit(20);
+  const names = [];
+  for (const r of refs || []) {
+    if (r.url) names.push(r.url);
+    if (!r.storage_path || DRY) continue;
+    const name = `project-${brandKitFileName(r)}`;
+    try {
+      await download(r.storage_path, path.join(extraDir, name));
+      names.push(name);
+    } catch (e) {
+      log(`Project reference download failed (${r.name}): ${e.message}`);
+    }
+  }
+  return { name: p.name, brief: p.brief, refs: names };
+}
+
 // ── 2. Queued jobs → editor inbox ──
 async function dispatchQueued() {
   const RANK = { urgent: 0, high: 1, normal: 2, low: 3 };
@@ -222,6 +269,15 @@ async function dispatchQueued() {
         await download(m.storage_path, path.join(extraDir, name));
         localMedia.push({ ...m, localName: name });
       }
+      // Reference links (Instagram, TikTok, YouTube…): download them so the editor can actually watch them.
+      let refN = 0;
+      for (const m of localMedia) {
+        if (m.kind !== "link" || !m.url) continue;
+        refN++;
+        const got = DRY ? null : downloadReference(m.url, extraDir, `reference-${refN}`);
+        if (got) m.localPath = got;
+        log(got ? `Reference ${refN} downloaded: ${path.basename(got)}` : `Reference ${refN} could not be downloaded: ${m.url}`);
+      }
       // Style picks: presets with their reference files go next to the job files; "auto" leaves it to Claude.
       const styles = [];
       const picks = job.style_choices || {};
@@ -248,9 +304,13 @@ async function dispatchQueued() {
       const pickedIds = Array.isArray(picks.materials) ? picks.materials : [];
       const { data: picked } = pickedIds.length ? await db.from("content_library").select("name, kind, notes, synced_path, url, local_path").in("id", pickedIds) : { data: [] };
       const materials = (picked || []).map((m) => ({ name: m.name, kind: m.kind, notes: m.notes, path: m.synced_path || m.url || m.local_path }));
+      // Brand kit: this client's, or another one picked for this video (e.g. a client's look on a quick edit).
+      const kitWs = picks.brand_from && picks.brand_from !== ws.id ? await workspace(picks.brand_from).catch(() => null) : null;
+      const brandKit = job.use_brand_kit === false ? null : await syncBrandKit(kitWs || ws, brandDirs(ROOT, brandFor(kitWs || ws)).root);
+      const project = job.project_id ? await projectFor(job.project_id, extraDir) : null;
       // Note first: the editor reads it when it picks the clip up.
       fs.mkdirSync(inbox, { recursive: true });
-      fs.writeFileSync(rawPath.replace(/\.[^.]+$/, ".txt"), editNote({ job, ws, media: localMedia, extraDir, agencyNotes: refOf(job.id).agency_notes, requestedOutputs: job.requested_outputs, styles, script, materials, libraryIndex: path.join(ROOT, "Library", "LIBRARY.md") }));
+      fs.writeFileSync(rawPath.replace(/\.[^.]+$/, ".txt"), editNote({ job, ws, media: localMedia, extraDir, agencyNotes: refOf(job.id).agency_notes, requestedOutputs: job.requested_outputs, styles, script, materials, libraryIndex: path.join(ROOT, "Library", "LIBRARY.md"), brandKit, project }));
       await download(primary.storage_path, rawPath);
       await patchRef(job.id, job.workspace_id, { brand, clip_base: clipBase, raw_path: rawPath, extra_dir: extraDir, dropped_at: new Date().toISOString(), imported: [], mode: "edit" });
       slots--;
@@ -385,6 +445,7 @@ async function syncActive() {
       await db.from("content_job_internal").update({ last_error: "The editor gave up after 2 attempts. Check the clip, then Retry. The editor's log is in herk-edit-kit/tmp/drive-inbox/logs." }).eq("job_id", job.id);
       await setJob(job.id, { status: "failed", needs_attention: true, attention_reason: "Edit failed twice." }, ["queued", "editing", "rendering"]);
       await ntfy("Edit failed", `${ws.name}: ${job.title}`, APP_URL ? `${APP_URL}/jobs/${job.id}` : undefined);
+      await appNotify({ kind: "edit_failed", title: `Edit failed: ${job.title}`, body: `${ws.name}. Open it and tap Retry.`, link: `/jobs/${job.id}`, workspaceId: ws.id, jobId: job.id });
       continue;
     }
     if (s.status === "editing" || s.status === "rendering") {
@@ -392,6 +453,35 @@ async function syncActive() {
       const pausedMsg = s.paused ? editor.paused?.message || "Claude usage limit" : null;
       if (!ref.started || (ref.paused || null) !== pausedMsg || (project && ref.project !== project)) await patchRef(job.id, job.workspace_id, { started: true, paused: pausedMsg, project });
     }
+  }
+}
+
+// ── 4b. "Ready in about…": an estimated finish time for every video waiting for or in the editor ──
+async function updateEtas() {
+  const editor = readEditorState();
+  const RANK = { urgent: 0, high: 1, normal: 2, low: 3 };
+  const { data: rows } = await db.from("content_jobs").select("id, status, priority, due_date, queued_at, eta_at").in("status", ["queued", "editing", "rendering"]).limit(100);
+  const jobs = rows || [];
+  if (!jobs.length) return;
+  const { data: internals } = await db.from("content_job_internal").select("job_id, editor_ref").in("job_id", jobs.map((j) => j.id));
+  const refOf = (id) => (internals || []).find((i) => i.job_id === id)?.editor_ref || {};
+  const startedOf = (job) => {
+    const ref = refOf(job.id);
+    const entry = ref.mode === "again" ? findAgainEntry(editor, ref.again_file) : editor.jobs?.[ref.raw_path];
+    return entry?.started ? Date.parse(entry.started) : null;
+  };
+  const active = jobs.filter((j) => j.status !== "queued").sort((a, b) => (startedOf(a) ?? 0) - (startedOf(b) ?? 0));
+  const current = active[0] ? { id: active[0].id, startedAt: startedOf(active[0]) } : null;
+  // Same order the bridge hands videos to the editor: priority, due date, then first come.
+  const waiting = [...active.slice(1), ...jobs.filter((j) => j.status === "queued").sort((a, b) => (RANK[a.priority] ?? 2) - (RANK[b.priority] ?? 2) || String(a.due_date ?? "9999").localeCompare(String(b.due_date ?? "9999")) || String(a.queued_at).localeCompare(String(b.queued_at)))];
+  const resumeAt = editor.paused?.until ? Date.parse(editor.paused.until) : null;
+  const etas = estimateEtas({ now: Date.now(), typicalMs: typicalEditMs(editor), current, queued: waiting.map((j) => j.id), resumeAt: Number.isFinite(resumeAt) ? resumeAt : null });
+  for (const job of jobs) {
+    const eta = etas.get(job.id);
+    if (!eta || DRY) continue;
+    // Only write real changes (over a minute), so phones aren't pinged every pass.
+    if (job.eta_at && Math.abs(Date.parse(job.eta_at) - eta.getTime()) < 60e3) continue;
+    await db.from("content_jobs").update({ eta_at: eta.toISOString() }).eq("id", job.id);
   }
 }
 
@@ -530,6 +620,37 @@ async function writeIdeaRequests() {
 }
 
 /**
+ * Keep a few ideas ready per workspace and form (status 'pool'), so tapping Short-form / Long-form in
+ * the app is instant. Only for workspaces that asked for ideas in the last 30 days, only when no
+ * request is waiting, one batch per pass.
+ */
+const POOL_TARGET = { short: 5, long: 3 };
+async function refillIdeaPool() {
+  const { count: waiting } = await db.from("content_idea_requests").select("id", { count: "exact", head: true }).in("status", ["pending", "writing"]);
+  if (waiting) return;
+  const since = new Date(Date.now() - 30 * 86400e3).toISOString();
+  const { data: recent } = await db.from("content_idea_requests").select("workspace_id").gte("created_at", since).limit(500);
+  const wsIds = [...new Set((recent || []).map((r) => r.workspace_id))];
+  for (const wsId of wsIds) {
+    for (const form of ["short", "long"]) {
+      const { count } = await db.from("content_script_ideas").select("id", { count: "exact", head: true }).eq("workspace_id", wsId).eq("form", form).eq("status", "pool");
+      const need = POOL_TARGET[form] - (count || 0);
+      if (need <= 0) continue;
+      const { data: ws } = await db.from("content_workspaces").select("id, name, brand_profile").eq("id", wsId).single();
+      if (!ws) continue;
+      const { data: history } = await db.from("content_script_ideas").select("hook, status, reason, form").eq("workspace_id", wsId).in("status", ["liked", "passed", "saved", "recorded", "new"]).order("created_at", { ascending: false }).limit(40);
+      log(`Refilling ${need} ready ${form}-form ideas for ${ws.name}`);
+      if (DRY) return;
+      const prompt = ideaRequestPrompt({ workspaceName: ws.name, brand: ws.brand_profile || {}, form, style: "Claude picks", topic: null, count: need, history: history || [] });
+      await streamIdeas(prompt, async (idea) => {
+        await db.from("content_script_ideas").insert({ ...idea, workspace_id: ws.id, source: "claude", status: "pool" });
+      }, { form, style: "Claude picks" });
+      return; // one batch per pass keeps requests snappy
+    }
+  }
+}
+
+/**
  * Runs Claude with streamed output and hands over each idea the moment its line is complete, so the
  * first idea shows up in the app within seconds instead of after the whole batch.
  */
@@ -615,12 +736,43 @@ async function mirrorAlerts() {
   }
 }
 
-function kickEditor() {
-  if (DRY || (fs.existsSync(EDITOR_LOCK) && Date.now() - fs.statSync(EDITOR_LOCK).mtimeMs < 6 * 3600e3)) return;
-  // Same command the "Herk Edits Inbox" task runs; drive-inbox keeps its own lock and one-job rule.
-  const child = spawn(process.execPath, [path.join(KIT, "scripts", "drive-inbox.mjs")], { cwd: KIT, detached: true, stdio: "ignore", windowsHide: true });
-  child.unref();
-  log("Started drive-inbox (it processes at most one job per run).");
+/**
+ * Start the editor now. drive-inbox only takes a clip once it has seen the same file size on two
+ * runs (its "upload finished" check, made for Google Drive uploads), and its own task runs every
+ * 15 minutes. Our drops are complete files, so if the first run just records the size and exits,
+ * run it again straight away: the edit then starts within seconds instead of 15-30 minutes.
+ */
+async function kickEditor() {
+  const editorBusy = () => fs.existsSync(EDITOR_LOCK) && Date.now() - fs.statSync(EDITOR_LOCK).mtimeMs < 6 * 3600e3;
+  if (DRY || editorBusy()) return;
+  const start = () => spawn(process.execPath, [path.join(KIT, "scripts", "drive-inbox.mjs")], { cwd: KIT, detached: true, stdio: "ignore", windowsHide: true });
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const child = start();
+    const exited = await new Promise((resolve) => {
+      const t = setTimeout(() => resolve(false), 20000);
+      child.on("exit", () => {
+        clearTimeout(t);
+        resolve(true);
+      });
+    });
+    child.unref();
+    if (!exited || editorBusy()) {
+      log("Editor started on the next clip.");
+      return;
+    }
+    if (attempt === 1) await new Promise((r) => setTimeout(r, 1500));
+  }
+  log("Editor checked the inbox; nothing ready to start yet.");
+}
+
+/** A notification created by the app (in-app list + phone push), for events only the PC sees. */
+async function appNotify(n) {
+  if (DRY || !APP_URL || !env.CRON_SECRET) return;
+  try {
+    await fetch(`${APP_URL}/api/bridge/notify`, { method: "POST", headers: { authorization: `Bearer ${env.CRON_SECRET}`, "content-type": "application/json" }, body: JSON.stringify(n) });
+  } catch (e) {
+    log(`App notify failed: ${e.message}`);
+  }
 }
 
 async function tickApp() {
@@ -637,12 +789,33 @@ if (WATCH) {
   // Long-running: check for "Content ideas" requests every 3 s. Task Scheduler restarts it if it dies.
   log("Watching for idea requests…");
   let lastWarm = 0;
+  let lastPass = 0;
+  let passRunning = false;
+  let lastPoolCheck = 0;
   for (;;) {
     try {
       fs.writeFileSync(LOCK, String(process.pid));
       await writeIdeaRequests();
+      // Idle: top up the ready-made ideas (at most every 2 minutes).
+      if (Date.now() - lastPoolCheck > 120_000) {
+        lastPoolCheck = Date.now();
+        await refillIdeaPool();
+      }
     } catch (e) {
       log(`watch error: ${e.message}`);
+    }
+    // Every 30 s: a full bridge pass (status sync, new edits, finished renders) as its own process.
+    // It takes the main pass lock, so it never overlaps the 5-minute scheduled task.
+    if (Date.now() - lastPass > 30_000 && !passRunning) {
+      lastPass = Date.now();
+      passRunning = true;
+      const child = spawn(process.execPath, [path.join(HERE, "index.mjs")], { cwd: REPO, stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+      const out = fs.createWriteStream(path.join(STATE_DIR, "bridge.log"), { flags: "a" });
+      child.stdout.pipe(out);
+      child.stderr.pipe(out);
+      child.on("exit", () => {
+        passRunning = false;
+      });
     }
     // Keep the app's server warm (Cloudflare unloads idle apps; waking one costs 1-2 s on the phone).
     if (APP_URL && Date.now() - lastWarm > 60_000) {
@@ -666,17 +839,30 @@ try {
     await dispatchQueued();
     await dispatchRevisions();
     await syncActive();
+    await updateEtas();
     await syncRatings();
     await importDriveOnly(workspaces || []);
     await writeIdeaRequests();
     await writeScriptIdeas(workspaces || []);
     const { count } = await db.from("content_jobs").select("id", { count: "exact", head: true }).in("status", ["queued", "editing", "rendering"]);
-    await heartbeat("ok", { drive_root: ROOT, kit: KIT, brands: (workspaces || []).map(brandFor), queue: count ?? 0, editor_paused: readEditorState().paused?.message ?? null });
-    if (count) kickEditor();
+    let backup = null;
+    if (BACKUP) {
+      try {
+        backup = backupPass({ root: ROOT, stateDir: STATE_DIR, log, dry: DRY });
+      } catch (e) {
+        backup = { status: "error", message: e.message };
+        log(`Drive backup error: ${e.message}`);
+      }
+    }
+    await heartbeat("ok", { drive_root: ROOT, kit: KIT, brands: (workspaces || []).map(brandFor), queue: count ?? 0, editor_paused: readEditorState().paused?.message ?? null, backup });
+    if (count) await kickEditor();
   }
   await mirrorAlerts();
-  // Every pass: the app has no Worker cron on the free plan, so this is its 5-minute heartbeat.
-  if (!IDEAS_ONLY) await tickApp();
+  // The app has no Worker cron on the free plan, so the bridge is its heartbeat (at most once a minute).
+  if (!IDEAS_ONLY && Date.now() - Date.parse(state.lastTickAt ?? 0) > 55_000) {
+    await tickApp();
+    state.lastTickAt = new Date().toISOString();
+  }
 } catch (e) {
   log(`Bridge error: ${e.stack || e.message}`);
   await heartbeat("error", { drive_root: ROOT, message: e.message }).catch(() => {});
