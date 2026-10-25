@@ -35,11 +35,11 @@
   <a href="#license">License</a>
 </p>
 
-<p align="center"><img src=".github/assets/divider.svg" width="100%" alt=""></p>
-
-
 > [!TIP]
 > **🤖 Pasted this link into Claude or ChatGPT?** AI assistants: read [`docs/AI_GUIDE.md`](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/docs/AI_GUIDE.md) first. It explains what this is in plain words, which questions to ask, and how to set it up step by step. Plain-text index: [`llms.txt`](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/llms.txt).
+
+
+<p align="center"><img src=".github/assets/divider.svg" width="100%" alt=""></p>
 
 ## 01 · What it does
 
@@ -78,6 +78,7 @@ Then open the folder in Claude Code and say: *"Edit raw/my-clip.mp4 into a 30-se
 ## 03 · How an edit happens
 
 ```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#121212','primaryTextColor':'#f4f4f2','primaryBorderColor':'#8b5cf6','lineColor':'#d946ef','secondaryColor':'#1c1c1c','tertiaryColor':'#080808','clusterBkg':'transparent','clusterBorder':'#8b5cf6','noteBkgColor':'#1c1c1c','noteTextColor':'#f4f4f2','actorBkg':'#121212','actorTextColor':'#f4f4f2','actorBorder':'#8b5cf6','signalColor':'#d946ef','signalTextColor':'#d946ef','labelBoxBkgColor':'#121212','fontFamily':'inherit'}}}%%
 flowchart LR
     A["You drop in<br/>raw footage"] --> B["Speech is turned<br/>into text"]
     B --> C["Silences and<br/>fumbles are cut"]
@@ -92,6 +93,7 @@ flowchart LR
 ## 04 · The life of a client video
 
 ```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#121212','primaryTextColor':'#f4f4f2','primaryBorderColor':'#8b5cf6','lineColor':'#d946ef','secondaryColor':'#1c1c1c','tertiaryColor':'#080808','clusterBkg':'transparent','clusterBorder':'#8b5cf6','noteBkgColor':'#1c1c1c','noteTextColor':'#f4f4f2','actorBkg':'#121212','actorTextColor':'#f4f4f2','actorBorder':'#8b5cf6','signalColor':'#d946ef','signalTextColor':'#d946ef','labelBoxBkgColor':'#121212','fontFamily':'inherit'}}}%%
 flowchart LR
     A["Client uploads clips<br/>from their phone"] --> B{"Needs your OK<br/>first?"}
     B -->|yes| C["Waits for<br/>your approval"] --> D
