@@ -37,7 +37,7 @@ captioned. Every point I make should be shown, not only said:
   tools use). Set `HYPERFRAMES_WHISPER_PATH` in `.env` if `whisper-cli` is not on PATH.
 - Never call ElevenLabs, OpenAI, Groq, or Kie.ai unless I ask. No paid generation.
 
-## Phone pipeline
+## Watched folder
 
 `scripts/drive-inbox.mjs` runs every 15 minutes (Windows Task Scheduler) and edits uploads in the folder set by
-`HERK_DRIVE_ROOT`. Uploads arrive from the God Mode Cut app through `app/bridge`. My taste: `raw-media/styles/<brand>/`.
+`HERK_DRIVE_ROOT`. Drop clips (and a short note) into its inbox from any device. My taste: `raw-media/styles/<brand>/`.

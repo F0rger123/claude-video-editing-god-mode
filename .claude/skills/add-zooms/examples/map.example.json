@@ -1,0 +1,6 @@
+[
+  {"type":"ratchet","steps":[[4.55,1.16],[5.40,1.20],[5.95,1.24],[6.65,1.28]],"label":"hook list: item / item / item"},
+  {"type":"punch","t":18.70,"peak":1.26,"hold":0.35,"label":"emphasised word"},
+  {"type":"kenburns","t0":41.14,"t1":45.10,"peak":1.14,"label":"the insight / thesis line"},
+  {"type":"punch","t":60.80,"peak":1.24,"hold":0.55,"label":"payoff word"}
+]

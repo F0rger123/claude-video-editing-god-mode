@@ -28,3 +28,25 @@ placeholders. Replace them with your own verified copy before publishing a video
 The three videos in examples/showcase were also explicitly supplied by Nate for
 public inclusion as finished-output references. They retain their existing asset
 rights; inclusion does not grant rights to third-party brands or embedded media.
+
+## Community skills included in v2.0
+
+These skills are published by their authors under open-source licenses. Each folder keeps its own `LICENSE`
+(and `NOTICE` where there is one); that license, not this repo's, applies to the folder, including its media.
+
+| Skill | Author | License |
+| --- | --- | --- |
+| `add-zooms` | Louise de Sadeleer | MIT |
+| `business-motion-film` | echris6 | MIT |
+| `collage` | Prakhar Mehta | MIT |
+| `editing-videos` | kmilo93sd | MIT (see its graphics and library LICENSES.md for bundled media) |
+| `ghost-editor` | kurbaitaev | MIT (see docs/THIRD_PARTY for audio and fonts) |
+| `lower-thirds` | iart.ai | MIT |
+| `short-form-retention` | iart.ai | MIT |
+| `motionmaxxing` | Tejas Makwana | Apache-2.0 |
+| `video-structure-analyzer` | sharon-laicc | MIT |
+| `youtube-packaging` | Hasan Aboul Hasan | MIT |
+
+`lemo-opuscar` is a launcher only: it downloads the Lemo-Opuscar library (github.com/lemomo-ai/lemo-opuscar) on
+first use; that library's own license applies. `real-sfx` ships no sound files: it indexes sound libraries the user
+already owns (see its `config.example.json`).

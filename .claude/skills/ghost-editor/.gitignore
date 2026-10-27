@@ -1,0 +1,29 @@
+# media is rebuilt by scripts/library_restore.py; the repo keeps manifests and meta only
+library/sfx/*.wav
+library/memes/*/clip.webm
+library/memes/*/image.png
+library/memes/*/preview.png
+library/audition.html
+__pycache__/
+.DS_Store
+
+# licensed/ripped media is restored by scripts/library_restore.py, never committed
+library/music/*.mp3
+.env
+
+# face model: face_track.py downloads it on first use (opencv_zoo, MIT)
+library/models/*.onnx
+.venv-df/
+
+# v0.3 optional media, rebuilt by scripts (emoji: scripts/emoji_fetch.py; film LUTs: scripts/gen_luts.py via setup_looks.sh)
+library/emoji/*
+!library/emoji/set.json
+library/luts/*
+!library/luts/looks.json
+tools/paper/node_modules/
+
+# your face embeddings and the index of your own libraries (own_footage.py): stay on your Mac, never in git
+library/me/
+
+# Gemini answers of broll_vision.py (people rules, line match), per clip window
+library/vision-cache/

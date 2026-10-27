@@ -1,11 +1,27 @@
 {
   "name": "video-editing-god-mode",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "MIT",
-  "description": "Claude Video Editing God Mode: 16 video editing skills (reels, Shorts, long-form, silence and mistake cutting, storytelling, motion graphics, HyperFrames + GSAP) plus the God Mode Cut PWA for phone uploads, approvals, client review and Buffer scheduling.",
-  "author": { "name": "F0rger123", "url": "https://github.com/F0rger123" },
+  "description": "Claude Video Editing God Mode: 34 video editing skills for Claude Code and Codex: reels, Shorts and long-form edits, silence and mistake cutting, zooms, captions, lower thirds, list and tier-list videos, motion-graphics films, real sound design, YouTube packaging, HyperFrames + GSAP.",
+  "author": {
+    "name": "F0rger123",
+    "url": "https://github.com/F0rger123"
+  },
   "homepage": "https://github.com/F0rger123/claude-video-editing-god-mode",
   "repository": "https://github.com/F0rger123/claude-video-editing-god-mode",
-  "keywords": ["video-editing", "reels", "youtube-shorts", "hyperframes", "gsap", "motion-graphics", "captions", "pwa", "claude-code"],
-  "skills": ["./.claude/skills/"]
+  "keywords": [
+    "video-editing",
+    "reels",
+    "youtube-shorts",
+    "hyperframes",
+    "gsap",
+    "motion-graphics",
+    "captions",
+    "claude-code",
+    "sound-design",
+    "youtube-thumbnails"
+  ],
+  "skills": [
+    "./.claude/skills/"
+  ]
 }

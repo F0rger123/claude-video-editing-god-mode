@@ -4,7 +4,7 @@
 
 ## What this is
 
-A video-editing kit for Claude Code. You give it raw footage and it cuts out silences and mistakes, adds captions and motion graphics, and renders a finished reel, Short or long-form video on your own computer. It also includes God Mode Cut, a phone app where clients upload clips, approve edits and get videos scheduled to social media.
+A video-editing kit for Claude Code. You give it raw footage and it cuts out silences and mistakes, adds captions and motion graphics, and renders a finished reel, Short or long-form video on your own computer. It comes with 34 skills: zooms, lower thirds, list and tier-list videos, motion-graphics films, real sound design and YouTube packaging.
 
 **Usually used by:** A creator or small agency owner who wants Claude to edit their videos, or a developer helping them.
 
@@ -12,8 +12,8 @@ A video-editing kit for Claude Code. You give it raw footage and it cuts out sil
 
 Ask these together in one short message, then repeat back what you heard in a line or two. Skip anything they already told you.
 
-- What do you want to make: a reel or Short, a long-form video, a brand showreel, or a video from a website?
-- Do you want only the editing skills on this computer, or the phone app for clients too?
+- What do you want to make: a reel or Short, a long-form video, a list or tier-list video, a brand film or showreel, or a video from a website?
+- Do you want the whole workspace on this computer, or only the skills as a Claude Code plugin?
 - Is this a Windows, Mac or Linux computer, and do you already have Node.js 22 or newer and FFmpeg?
 
 ## Set it up
@@ -26,7 +26,7 @@ Do one step at a time. Check each one worked before moving on.
 | 2 | `npm run setup` | It reports Node, FFmpeg, Chrome and the HyperFrames renderer as ready |
 | 3 | `npm run demo` | A starter video renders without any footage or API key |
 | 4 | Optional: copy `.env.example` to `.env`; the person adds any cloud transcription or image keys themselves | The file exists; never read the values back |
-| 5 | Optional phone app: in `app/`, run `npm ci`, copy `.env.example` to `.env.local` (the person fills in Supabase and Buffer), then `npm run dev` | The sign-in page loads at http://localhost:3000 |
+| 5 | Optional watched folder: set `HERK_DRIVE_ROOT` in `.env`, then `node scripts/drive-inbox.mjs --setup` | The inbox folders exist |
 
 ## Use it
 
@@ -40,7 +40,7 @@ Do one step at a time. Check each one worked before moving on.
 1. Your footage is transcribed on your computer (free) or by a cloud service if you add a key.
 2. Silences and fumbled lines are cut, then captions and motion graphics are added.
 3. Every edit is checked frame by frame before the final video is rendered.
-4. With the phone app, client uploads land in an inbox on the editing computer, Claude edits them, and the client approves the cut before it is scheduled.
+4. With a watched folder, clips you drop in from any device are edited automatically and the finished options land next to them.
 
 ## Never
 
@@ -49,7 +49,6 @@ Do one step at a time. Check each one worked before moving on.
 - Never publish or upload a finished video unless the person says yes to that video.
 - Never copy personal footage, transcripts or renders into the repo; they stay in ignored folders.
 - Never edit `.agents/skills/` by hand: edit `.claude/skills/` and run `npm run sync:skills`.
-- Never run the real phone-app bridge (`npm run bridge` in `app/`) unless the person is on the editing computer and says so.
 
 ## Read next
 
@@ -59,7 +58,6 @@ Do one step at a time. Check each one worked before moving on.
 - [A complete edit, step by step](docs/WORKFLOW.md)
 - [Tools, accounts and API keys](docs/TOOLS-AND-API-KEYS.md)
 - [Editing house style](docs/EDITING-PLAYBOOK.md)
-- [Deploying the phone app](app/docs/DEPLOYMENT.md)
 
 ## When you're done
 

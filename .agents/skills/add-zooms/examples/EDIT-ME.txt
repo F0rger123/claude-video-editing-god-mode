@@ -1,0 +1,40 @@
+HOW TO TWEAK THE ZOOMS YOURSELF
+================================
+
+1. Open  map.json  (in this folder). Each { } is one zoom, top to bottom in time order.
+2. Change the numbers (see cheat sheet below).
+3. Double-click  rezoom.command  (one folder up). It re-renders + opens the video (~15s).
+4. Repeat. That's the whole loop.
+
+Times are in SECONDS (e.g. 33.32 = 0:33.32). Scrub the video, read the time, put it in.
+
+
+THE THREE ZOOM TYPES
+--------------------
+
+PUNCH  — hard-cut zoom on one emphasised word. Jumps in, holds, jumps out.
+  {"type":"punch", "t":33.32, "peak":1.28, "hold":0.45, "label":"outliers"}
+    t     = WHEN it fires (put it right on the word's first syllable)
+    peak  = HOW DEEP  (1.0 = none, 1.20 = punchy, 1.30 = big. Don't go past ~1.35)
+    hold  = HOW LONG it stays zoomed before cutting back (seconds)
+
+RATCHET — a listicle that steps deeper on each item, then cuts back.
+  {"type":"ratchet", "steps":[[4.55,1.16],[5.40,1.20],[5.95,1.24]], "label":"list"}
+    steps = [time, peak] for each item. Add/remove pairs to match the list length.
+    (each pair is: when that item hits, how deep to jump)
+
+KENBURNS — the ONLY smooth one. Slow push across an insightful line.
+  {"type":"kenburns", "t0":41.14, "t1":45.10, "peak":1.14, "label":"thesis"}
+    t0    = start of the line     t1 = end of the line
+    peak  = how far it drifts in (keep subtle, 1.10-1.14)
+
+
+COMMON FIXES
+------------
+Cut feels early/late  -> nudge  t  by 0.05-0.15 (a few frames)
+Cut feels glitchy     -> land t exactly on the word onset, or on a tiny pause
+Pops in and vanishes  -> increase  hold
+Too jarring / deep    -> lower  peak
+Don't want it at all  -> delete that whole { } line (mind the commas!)
+
+RULE: keep it valid JSON — every line ends with a comma EXCEPT the last one before ]

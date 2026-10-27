@@ -1,9 +1,9 @@
 {
   "name": "claude-video-editing-god-mode",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "commonjs",
-  "description": "Claude Video Editing God Mode: AI video editing skills for Claude Code and Codex (built on the MIT Herk Edit Kit and HyperFrames) plus the God Mode Cut PWA for uploads, approvals, client review and scheduling.",
+  "description": "Claude Video Editing God Mode: 34 AI video editing skills for Claude Code and Codex (built on the MIT Herk Edit Kit, HyperFrames and other open-source skills)",
   "scripts": {
     "transcribe": "node scripts/transcribe-elevenlabs.mjs",
     "transcribe:local": "node scripts/transcribe-local.mjs",

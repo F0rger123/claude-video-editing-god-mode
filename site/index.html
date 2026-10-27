@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Video Editing God Mode</title>
+<meta name="description" content="34 free video-editing skills for Claude Code and Codex. Hand it raw footage; it cuts the pauses and retakes, adds captions, zooms and motion graphics, checks every frame and renders the finished video on your own computer.">
+<meta property="og:title" content="Claude Video Editing God Mode">
+<meta property="og:description" content="Raw footage in. A finished, captioned, motion-graphics video out. 34 free skills for Claude Code.">
+<meta property="og:image" content="media/raw-vs-edited.jpg">
+<meta name="theme-color" content="#08080a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#08080a; --panel:#111114; --panel-2:#17171b; --rule:#26262c; --rule-2:#34343c;
+  --bone:#f4f4f2; --mist:#a3a3ad; --ash:#6e6e78;
+  --violet:#8b5cf6; --fuchsia:#d946ef; --orange:#f97316;
+  --cut:linear-gradient(90deg,var(--violet),var(--fuchsia) 55%,var(--orange));
+  --sans:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"Geist Mono",ui-monospace,Menlo,Consolas,monospace;
+  --max:1180px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--ink);color:var(--bone);font-family:var(--sans);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+img,video{display:block;max-width:100%}
+:focus-visible{outline:2px solid var(--fuchsia);outline-offset:3px;border-radius:6px}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+.mono{font-family:var(--mono);font-size:13px;letter-spacing:0;color:var(--mist)}
+
+/* Header */
+header{position:sticky;top:0;z-index:10;background:rgba(8,8,10,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--rule)}
+.bar{display:flex;align-items:center;gap:20px;height:60px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:700;font-size:15px}
+.mark{width:26px;height:26px;border-radius:7px;background:var(--cut);display:grid;place-items:center}
+.mark::after{content:"";width:0;height:0;border-left:8px solid var(--ink);border-top:5px solid transparent;border-bottom:5px solid transparent;margin-left:2px}
+nav{display:flex;gap:22px;margin-left:auto;font-size:14px;color:var(--mist)}
+nav a{text-decoration:none}
+nav a:hover{color:var(--bone)}
+.gh{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--rule-2);font-size:14px;font-weight:600;text-decoration:none}
+.gh:hover{border-color:var(--bone)}
+@media (max-width:760px){nav{display:none}.bar .gh{margin-left:auto}}
+
+/* Hero */
+.hero{padding:76px 0 40px;display:grid;grid-template-columns:1fr 330px;gap:64px;align-items:center}
+h1{font-size:clamp(44px,6.2vw,84px);line-height:.98;font-weight:800;letter-spacing:-.045em}
+h1 .raw{display:block;color:var(--ash)}
+h1 .out{display:block}
+.lede{margin-top:26px;max-width:34em;font-size:19px;color:var(--mist)}
+.lede b{color:var(--bone);font-weight:600}
+.ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;padding:0 24px;border-radius:999px;font-weight:600;font-size:16px;text-decoration:none;border:1px solid var(--rule-2);background:none;color:var(--bone);cursor:pointer;font-family:inherit}
+.btn.primary{background:var(--bone);color:var(--ink);border-color:var(--bone)}
+.btn.primary:hover{background:#fff}
+.btn:not(.primary):hover{border-color:var(--bone)}
+.facts{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:30px}
+.facts span{font-family:var(--mono);font-size:13px;color:var(--mist)}
+.facts b{color:var(--bone);font-weight:500}
+.phone{position:relative;border-radius:34px;padding:9px;background:#1b1b20;border:1px solid var(--rule-2);box-shadow:0 30px 80px -30px rgba(139,92,246,.45)}
+.phone video{border-radius:26px;aspect-ratio:9/16;width:100%;background:#000;object-fit:cover}
+.phone figcaption{position:absolute;left:0;right:0;bottom:-34px;text-align:center}
+.sound{position:absolute;right:20px;top:20px;height:34px;padding:0 12px;border-radius:999px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);color:#fff;font:600 12px var(--sans);cursor:pointer}
+@media (max-width:900px){.hero{grid-template-columns:1fr;gap:56px;padding-top:48px}.phone{max-width:300px;margin:0 auto}}
+
+/* Timeline: the one big moment */
+.timeline{margin:70px 0 0;border:1px solid var(--rule);border-radius:18px;background:var(--panel);overflow:hidden}
+.tl-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--rule)}
+.tl-head .state{color:var(--bone)}
+.tl-body{position:relative;padding:14px 18px 18px 64px}
+.ruler{display:flex;justify-content:space-between;margin-bottom:10px}
+.track{position:relative;height:44px;margin-bottom:8px}
+.track .lbl{position:absolute;left:-48px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:12px;color:var(--ash)}
+.lane{position:absolute;inset:0;display:flex;gap:0}
+.seg{position:relative;height:100%;border-radius:6px;overflow:hidden;transition:flex-grow 1.1s cubic-bezier(.7,0,.2,1),opacity .6s,margin 1.1s cubic-bezier(.7,0,.2,1)}
+.seg.talk{background:#232329}
+.seg.talk canvas{position:absolute;inset:0;width:100%;height:100%}
+.seg.gap{background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(249,115,22,.14) 6px 8px);border:1px dashed rgba(249,115,22,.55)}
+.seg.gap::after{content:attr(data-why);position:absolute;inset:0;display:grid;place-items:center;font:500 11px var(--mono);color:var(--orange);white-space:nowrap}
+.cc .chip,.fx .chip{position:absolute;top:6px;bottom:6px;border-radius:6px;opacity:0;transform:translateY(6px);transition:opacity .5s,transform .5s}
+.cc .chip{background:rgba(244,244,242,.1);border:1px solid rgba(244,244,242,.35);font:600 12px var(--sans);display:flex;align-items:center;padding:0 8px;white-space:nowrap;overflow:hidden}
+.fx .chip{background:var(--cut);font:600 11px var(--mono);color:var(--ink);display:flex;align-items:center;padding:0 8px;white-space:nowrap;overflow:hidden}
+.playhead{position:absolute;top:0;bottom:0;left:64px;width:2px;background:var(--fuchsia);box-shadow:0 0 12px var(--fuchsia);opacity:0}
+.timeline.cut .gap{flex-grow:0!important;opacity:0;border-width:0}
+.timeline.cut .talk{margin-right:2px}
+.timeline.dressed .chip{opacity:1;transform:none}
+.timeline.dressed .chip:nth-child(2){transition-delay:.12s}.timeline.dressed .chip:nth-child(3){transition-delay:.24s}.timeline.dressed .chip:nth-child(4){transition-delay:.36s}
+.timeline.play .playhead{opacity:1;animation:sweep 3.2s linear forwards}
+@keyframes sweep{from{left:64px}to{left:calc(100% - 20px)}}
+.tl-foot{display:flex;flex-wrap:wrap;gap:8px 24px;padding:12px 18px;border-top:1px solid var(--rule)}
+.replay{margin-left:auto;background:none;border:0;color:var(--mist);font:500 13px var(--mono);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+@media (max-width:640px){.tl-body{padding-left:48px}.track .lbl{left:-38px}.seg.gap::after{content:""}.cc .chip,.fx .chip{font-size:10px;padding:0 4px}}
+
+/* Sections */
+section.block{padding:120px 0 0}
+.kicker{font-family:var(--mono);font-size:13px;color:var(--fuchsia);margin-bottom:14px}
+h2{font-size:clamp(32px,4.6vw,54px);line-height:1.02;letter-spacing:-.035em;font-weight:800;max-width:16em}
+.sub{margin-top:16px;max-width:38em;color:var(--mist);font-size:18px}
+
+/* Steps along timecode */
+.steps{margin-top:48px;display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--rule)}
+.step{padding:22px 18px 0 0;position:relative}
+.step::before{content:"";position:absolute;top:-4px;left:0;width:7px;height:7px;border-radius:50%;background:var(--bone)}
+.step .mono{display:block;margin-bottom:10px}
+.step h3{font-size:17px;line-height:1.25;margin-bottom:8px;letter-spacing:-.01em}
+.step p{font-size:15px;color:var(--mist)}
+@media (max-width:980px){.steps{grid-template-columns:repeat(2,1fr);row-gap:30px;border-top:0}.step{border-top:1px solid var(--rule)}}
+@media (max-width:520px){.steps{grid-template-columns:1fr}}
+
+/* Examples */
+.reel-grid{margin-top:48px;display:grid;grid-template-columns:1.9fr 1fr 1fr;gap:18px;align-items:start}
+.clip{background:var(--panel);border:1px solid var(--rule);border-radius:16px;overflow:hidden}
+.clip video{width:100%;background:#000}
+.clip.v video{aspect-ratio:9/16;object-fit:cover}
+.clip.h video{aspect-ratio:16/9}
+.clip figcaption{padding:14px 16px 16px}
+.clip figcaption b{display:block;font-size:15px}
+.clip figcaption span{font-size:14px;color:var(--mist)}
+.credit{margin-top:16px;font-size:14px;color:var(--ash)}
+@media (max-width:900px){.reel-grid{grid-template-columns:1fr 1fr}.clip.h{grid-column:1/-1}}
+
+/* Skill bins */
+.bins{margin-top:48px;display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.bin{border:1px solid var(--rule);border-radius:16px;background:var(--panel);padding:22px 22px 10px}
+.bin h3{display:flex;justify-content:space-between;align-items:baseline;font-size:19px;letter-spacing:-.015em;margin-bottom:10px}
+.bin ul{list-style:none}
+.bin li{display:grid;grid-template-columns:190px 1fr;gap:14px;padding:11px 0;border-top:1px solid var(--rule);font-size:15px;color:var(--mist)}
+.bin li code{font-family:var(--mono);font-size:13.5px;color:var(--bone)}
+.bin li .by{display:block;font-size:12px;color:var(--ash);margin-top:2px;font-family:var(--mono)}
+@media (max-width:980px){.bins{grid-template-columns:1fr}}
+@media (max-width:520px){.bin li{grid-template-columns:1fr;gap:2px}}
+
+/* Install */
+.install{margin-top:48px;display:grid;grid-template-columns:1.15fr 1fr;gap:18px}
+.install>*,.bins>*,.reel-grid>*{min-width:0}
+.card{border:1px solid var(--rule);border-radius:16px;background:var(--panel);padding:26px}
+.card h3{font-size:21px;letter-spacing:-.015em}
+.card p{color:var(--mist);margin-top:6px;font-size:15px}
+pre{position:relative;margin-top:18px;background:#0b0b0e;border:1px solid var(--rule);border-radius:12px;padding:16px 16px 16px 16px;overflow-x:auto;font:400 13.5px/1.75 var(--mono);color:var(--bone)}
+pre .c{color:var(--ash)}
+.copy{position:absolute;top:10px;right:10px;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--rule-2);background:var(--panel-2);color:var(--bone);font:500 12px var(--sans);cursor:pointer}
+.then{margin-top:16px;font-size:15px;color:var(--mist)}
+.then q{color:var(--bone);quotes:"\201C" "\201D"}
+.needs{margin-top:22px;display:flex;flex-wrap:wrap;gap:8px}
+.needs span{font-family:var(--mono);font-size:12.5px;border:1px solid var(--rule-2);border-radius:999px;padding:5px 11px;color:var(--mist)}
+@media (max-width:900px){.install{grid-template-columns:1fr}}
+
+/* Rules */
+.rules{margin-top:44px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--rule);border-radius:16px;overflow:hidden}
+.rule{padding:24px;border-right:1px solid var(--rule)}
+.rule:last-child{border-right:0}
+.rule h3{font-size:17px;margin-bottom:8px;letter-spacing:-.01em}
+.rule p{font-size:15px;color:var(--mist)}
+@media (max-width:900px){.rules{grid-template-columns:1fr 1fr}.rule:nth-child(2){border-right:0}.rule:nth-child(-n+2){border-bottom:1px solid var(--rule)}}
+@media (max-width:520px){.rules{grid-template-columns:1fr}.rule{border-right:0;border-bottom:1px solid var(--rule)}.rule:last-child{border-bottom:0}}
+
+/* Footer */
+footer{margin-top:130px;border-top:1px solid var(--rule);padding:44px 0 56px}
+.foot{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:32px}
+.foot h4{font-size:14px;margin-bottom:12px}
+.foot ul{list-style:none;display:grid;gap:8px;font-size:15px;color:var(--mist)}
+.foot a{text-decoration:none}.foot a:hover{color:var(--bone)}
+.foot p{font-size:14px;color:var(--ash);margin-top:10px;max-width:30em}
+@media (max-width:760px){.foot{grid-template-columns:1fr}}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="#top" aria-label="Claude Video Editing God Mode, top of page"><span class="mark" aria-hidden="true"></span>Video Editing God Mode</a>
+    <nav aria-label="Sections"><a href="#how">How it works</a><a href="#examples">Examples</a><a href="#skills">34 skills</a><a href="#install">Install</a></nav>
+    <a class="gh" href="https://github.com/F0rger123/claude-video-editing-god-mode"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.88.87 2.34.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.22 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.66 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg>GitHub</a>
+  </div>
+</header>
+
+<main id="top" class="wrap">
+  <section class="hero">
+    <div>
+      <h1><span class="raw">Raw footage in.</span><span class="out">Finished video out.</span></h1>
+      <p class="lede">34 free skills that turn <b>Claude Code</b> into a video editor. It cuts the pauses and retakes, adds captions, zooms and motion graphics, checks every frame, and renders the finished reel, Short or long-form video <b>on your own computer</b>.</p>
+      <div class="ctas">
+        <a class="btn primary" href="#install">Install it free</a>
+        <a class="btn" href="#examples">Watch real edits</a>
+      </div>
+      <div class="facts"><span><b>34</b> skills</span><span><b>406</b> motion cards</span><span><b>$0</b> to run locally</span><span>MIT</span></div>
+    </div>
+    <figure class="phone">
+      <video id="hero-video" src="media/raw-vs-edited.mp4" poster="media/raw-vs-edited.jpg" autoplay muted loop playsinline preload="metadata" aria-label="A raw one-take recording, then the same footage after the AI edit"></video>
+      <button class="sound" id="sound" type="button" aria-pressed="false">Sound on</button>
+      <figcaption class="mono">One take, raw, then edited by the agent</figcaption>
+    </figure>
+  </section>
+
+  <div class="timeline" id="tl" aria-label="Illustration: an edit on a timeline. Pauses and a retake are cut, then captions and motion graphics are added.">
+    <div class="tl-head"><span class="mono">edit.timeline</span><span class="mono state" id="tl-state">raw recording, 00:58</span></div>
+    <div class="tl-body">
+      <div class="ruler mono" aria-hidden="true"><span>00:00</span><span>00:15</span><span>00:30</span><span>00:45</span></div>
+      <div class="track fx" aria-hidden="true"><span class="lbl">FX</span>
+        <div class="chip" style="left:4%;width:16%">hook card</div>
+        <div class="chip" style="left:30%;width:12%">punch zoom</div>
+        <div class="chip" style="left:52%;width:20%">UI b-roll</div>
+        <div class="chip" style="left:80%;width:14%">end card</div>
+      </div>
+      <div class="track" aria-hidden="true"><span class="lbl">A/V</span>
+        <div class="lane" id="lane"></div>
+      </div>
+      <div class="track cc" aria-hidden="true"><span class="lbl">CC</span>
+        <div class="chip" style="left:2%;width:20%">AI edits everything</div>
+        <div class="chip" style="left:25%;width:22%">from one take</div>
+        <div class="chip" style="left:50%;width:22%">every pause gone</div>
+        <div class="chip" style="left:75%;width:21%">checked frame by frame</div>
+      </div>
+      <div class="playhead" aria-hidden="true"></div>
+    </div>
+    <div class="tl-foot"><span class="mono">cut-silences</span><span class="mono">cut-mistakes</span><span class="mono">captions</span><span class="mono">add-zooms</span><span class="mono">hyperframes</span><button class="replay" id="replay" type="button">Replay the edit</button></div>
+  </div>
+
+  <section class="block" id="how">
+    <p class="kicker">How it works</p>
+    <h2>One sentence to Claude. Six passes on the timeline.</h2>
+    <p class="sub">Open the folder in Claude Code and say what you want, like <em>“Edit raw/my-clip.mp4 into a 30-second Instagram reel with captions.”</em> The hub skill picks the right editor and runs these passes in order.</p>
+    <div class="steps">
+      <div class="step"><span class="mono">00:00</span><h3>Speech becomes text</h3><p>Transcribed on your machine with whisper.cpp. Free, private, word-timed.</p></div>
+      <div class="step"><span class="mono">00:10</span><h3>Dead air and retakes go</h3><p>Pauses, stutters and false starts are cut between phrases, never inside one.</p></div>
+      <div class="step"><span class="mono">00:20</span><h3>Every point gets a visual</h3><p>Zooms, cards, lower thirds and UI B-roll built in HyperFrames and GSAP.</p></div>
+      <div class="step"><span class="mono">00:30</span><h3>Captions that read</h3><p>Word-timed, in your brand's look, and never over the mouth.</p></div>
+      <div class="step"><span class="mono">00:40</span><h3>Every frame is checked</h3><p>Preflight, validators and a contact sheet before anything is called done.</p></div>
+      <div class="step"><span class="mono">00:50</span><h3>You rate, it learns</h3><p>Yes, Maybe or No on each option. Your taste is saved per brand.</p></div>
+    </div>
+  </section>
+
+  <section class="block" id="examples">
+    <p class="kicker">Examples</p>
+    <h2>Finished edits made with these skills.</h2>
+    <div class="reel-grid">
+      <figure class="clip h"><video data-lazy src="media/showreel.mp4" poster="media/showreel.jpg" muted loop playsinline preload="none" controls aria-label="15-second YouTube motion showreel"></video><figcaption><b>Motion showreel</b><span>15 s, 16:9. Built with <code>motion-showreel</code>.</span></figcaption></figure>
+      <figure class="clip v"><video data-lazy src="media/reveal.mp4" poster="media/reveal.jpg" muted loop playsinline preload="none" controls aria-label="51-second talking-head reel edited by the agent"></video><figcaption><b>Talking-head reel</b><span>One take, edited end to end.</span></figcaption></figure>
+      <figure class="clip v"><video data-lazy src="media/live-ad.mp4" poster="media/live-ad.jpg" muted loop playsinline preload="none" controls aria-label="50-second vertical event ad"></video><figcaption><b>Short-form ad</b><span>Vertical, 50 s, with motion graphics.</span></figcaption></figure>
+    </div>
+    <p class="credit">Example videos by Nate Herk, from the Herk Edit Kit this project is built on, shared for public use as finished-output references.</p>
+  </section>
+
+  <section class="block" id="skills">
+    <p class="kicker">34 skills</p>
+    <h2>Pick a format. Claude picks the skill.</h2>
+    <p class="sub">Start with <code class="mono">video-editing-god-mode</code>. It asks at most two questions and routes to the right editor. Every skill also works on its own, in Claude Code and in Codex.</p>
+    <div class="bins">
+      <div class="bin"><h3>Cut and clean <span class="mono">5</span></h3><ul>
+        <li><code>cut-silences</code><span>Removes dead air with a natural gap left in.</span></li>
+        <li><code>cut-mistakes</code><span>Finds stutters, false starts and retakes; keeps the best take.</span></li>
+        <li><code>edit-video</code><span>A full long-form 16:9 edit from raw footage.</span></li>
+        <li><code>editing-videos</code><span>An editor's judgment: pacing, J and L cuts, LUFS, music, color. <span class="by">kmilo93sd</span></span></li>
+        <li><code>add-zooms</code><span>Punch-zooms on emphasis, slow pushes on insight. <span class="by">Louise de Sadeleer</span></span></li>
+      </ul></div>
+      <div class="bin"><h3>Short-form <span class="mono">7</span></h3><ul>
+        <li><code>short-form-edit</code><span>Reels, Shorts and TikToks from talking-head footage.</span></li>
+        <li><code>ghost-editor</code><span>A full phone-recording-to-reel pipeline. <span class="by">kurbaitaev</span></span></li>
+        <li><code>short-form-retention</code><span>Hooks, pattern interrupts, loops, the first 3 seconds. <span class="by">iart.ai</span></span></li>
+        <li><code>short-form-video</code><span>Vertical structure and pacing rules.</span></li>
+        <li><code>trend-style-copy</code><span>Measures a trending reel and copies its style onto your footage.</span></li>
+        <li><code>video-structure-analyzer</code><span>Breaks a viral video into a shot list and a brief. <span class="by">sharon-laicc</span></span></li>
+        <li><code>youtube-packaging</code><span>Titles, three thumbnail bets and a description. <span class="by">Hasan Aboul Hasan</span></span></li>
+      </ul></div>
+      <div class="bin"><h3>Formats <span class="mono">6</span></h3><ul>
+        <li><code>ranked-list</code><span>Top 10s, “types of” and 0-10 ratings with a picture per item.</span></li>
+        <li><code>tier-list</code><span>An S-to-F board that fills up as you talk.</span></li>
+        <li><code>business-makeover</code><span>Before shots, a step board and a new-website reveal.</span></li>
+        <li><code>contractor-styles</code><span>Proof cards, hype crew and owner walkthrough looks.</span></li>
+        <li><code>real-estate-styles</code><span>Seven listing-tour and agent-reel looks.</span></li>
+        <li><code>lower-thirds</code><span>Animated name tags and broadcast titles. <span class="by">iart.ai</span></span></li>
+      </ul></div>
+      <div class="bin"><h3>Motion and story <span class="mono">8</span></h3><ul>
+        <li><code>video-storytelling</code><span>Plans a long-form video so its graphics feel like one world.</span></li>
+        <li><code>hyperframes-video-beats</code><span>Turns story beats into timed motion scenes.</span></li>
+        <li><code>motion-showreel</code><span>10-30 s brand reels and showreels.</span></li>
+        <li><code>motionmaxxing</code><span>Launch films, kinetic type and brand stings. <span class="by">Tejas Makwana</span></span></li>
+        <li><code>business-motion-film</code><span>A premium commercial with a critic loop. <span class="by">echris6</span></span></li>
+        <li><code>collage</code><span>Paper-collage explainers from free archive photos. <span class="by">Prakhar Mehta</span></span></li>
+        <li><code>lemo-opuscar</code><span>Short films made in code, in painterly styles.</span></li>
+        <li><code>style-library</code><span>406 cards in two style packs, plus scene templates.</span></li>
+      </ul></div>
+      <div class="bin"><h3>Sound <span class="mono">1</span></h3><ul>
+        <li><code>real-sfx</code><span>Sound design from real recorded sounds you own, never synthesized.</span></li>
+      </ul></div>
+      <div class="bin"><h3>Engine and start <span class="mono">7</span></h3><ul>
+        <li><code>video-editing-god-mode</code><span>The hub: routes the request and enforces the house rules.</span></li>
+        <li><code>make-a-video</code><span>A first video from scratch, no footage needed.</span></li>
+        <li><code>website-to-hyperframes</code><span>Turns a website into a video.</span></li>
+        <li><code>hyperframes</code><span>Writes and fixes HTML video compositions. <span class="by">HeyGen</span></span></li>
+        <li><code>hyperframes-cli</code><span>Previews and renders them. <span class="by">HeyGen</span></span></li>
+        <li><code>hyperframes-registry</code><span>Ready-made blocks and components. <span class="by">HeyGen</span></span></li>
+        <li><code>gsap</code><span>Animation timing and easing. <span class="by">HeyGen</span></span></li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section class="block" id="install">
+    <p class="kicker">Install</p>
+    <h2>Two ways in. Both free.</h2>
+    <div class="install">
+      <div class="card">
+        <h3>The whole workspace</h3>
+        <p>Skills, style library, local transcription and the renderer. Best for editing real footage.</p>
+<pre><button class="copy" type="button" data-copy="ws">Copy</button><code id="ws">git clone https://github.com/F0rger123/claude-video-editing-god-mode.git
+cd claude-video-editing-god-mode
+npm install
+npm run setup   <span class="c"># checks Node 22+, FFmpeg, Chrome, renderer</span>
+npm run demo    <span class="c"># renders a starter video, no footage needed</span></code></pre>
+        <p class="then">Then open the folder in Claude Code and say <q>Edit raw/my-clip.mp4 into a 30-second reel with captions.</q></p>
+        <div class="needs"><span>Node.js 22+</span><span>FFmpeg</span><span>Chrome</span><span>Claude Code or Codex</span></div>
+      </div>
+      <div class="card">
+        <h3>Just the skills</h3>
+        <p>Add them to Claude Code as a plugin, in any project.</p>
+<pre><button class="copy" type="button" data-copy="pl">Copy</button><code id="pl">/plugin marketplace add F0rger123/claude-video-editing-god-mode</code></pre>
+        <p class="then">Paid services (ElevenLabs, OpenAI and others) are optional. Add your own key to <code class="mono">.env</code> only if you want them.</p>
+      </div>
+    </div>
+    <div class="rules">
+      <div class="rule"><h3>Free and local first</h3><p>Transcription, cutting and rendering run on your computer.</p></div>
+      <div class="rule"><h3>No music unless asked</h3><p>Sound follows what's on screen. Your own sound folder comes first.</p></div>
+      <div class="rule"><h3>Your footage stays yours</h3><p>Raw clips, transcripts and renders never go into the repo.</p></div>
+      <div class="rule"><h3>Checked before handover</h3><p>Nothing is called done until the render has been watched.</p></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <div>
+      <a class="brand" href="#top"><span class="mark" aria-hidden="true"></span>Video Editing God Mode</a>
+      <p>Built on the MIT Herk Edit Kit by Nate Herk and HyperFrames by HeyGen, with community skills kept under their authors' own licenses.</p>
+    </div>
+    <div><h4>Project</h4><ul>
+      <li><a href="https://github.com/F0rger123/claude-video-editing-god-mode">Source on GitHub</a></li>
+      <li><a href="https://github.com/F0rger123/claude-video-editing-god-mode/blob/main/docs/AI_GUIDE.md">Setup guide for AI assistants</a></li>
+      <li><a href="https://github.com/F0rger123/claude-video-editing-god-mode/blob/main/THIRD_PARTY_NOTICES.md">Licenses and credits</a></li>
+    </ul></div>
+    <div><h4>Part of Claude Business God Mode</h4><ul>
+      <li><a href="https://github.com/F0rger123/claude-business-god-mode">Business God Mode</a></li>
+      <li><a href="https://github.com/F0rger123/claude-meta-ads-god-mode">Meta Ads God Mode</a></li>
+      <li><a href="https://github.com/F0rger123/CLAUDE-SEO-GOD-MODE">SEO God Mode</a></li>
+      <li><a href="https://github.com/F0rger123/CLAUDE-DESIGN-GOD-MODE">Design God Mode</a></li>
+    </ul></div>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Timeline: talking segments with pauses and a retake between them.
+  const plan = [["t",14],["g",5,"pause 1.8s"],["t",11],["g",7,"retake"],["t",16],["g",4,"pause"],["t",13],["g",6,"false start"],["t",12],["g",3,""],["t",9]];
+  const lane = document.getElementById("lane");
+  plan.forEach(([kind, grow, why]) => {
+    const el = document.createElement("div");
+    el.className = "seg " + (kind === "t" ? "talk" : "gap");
+    el.style.flexGrow = grow;
+    if (why !== undefined) el.dataset.why = why;
+    if (kind === "t") el.appendChild(document.createElement("canvas"));
+    lane.appendChild(el);
+  });
+  function wave() {
+    lane.querySelectorAll("canvas").forEach((c, i) => {
+      const r = c.getBoundingClientRect(), d = devicePixelRatio || 1;
+      c.width = Math.max(1, r.width * d); c.height = r.height * d;
+      const x = c.getContext("2d"); x.fillStyle = "#8b8b96";
+      let seed = i * 97 + 13; const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+      for (let p = 0; p < c.width; p += 3 * d) {
+        const h = (0.18 + rnd() * 0.72) * c.height * (0.6 + 0.4 * Math.sin(p / (14 * d)));
+        x.fillRect(p, (c.height - h) / 2, 1.6 * d, h);
+      }
+    });
+  }
+  const tl = document.getElementById("tl"), state = document.getElementById("tl-state");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let timers = [];
+  function run() {
+    timers.forEach(clearTimeout); timers = [];
+    tl.classList.remove("cut", "dressed", "play"); state.textContent = "raw recording, 00:58";
+    requestAnimationFrame(wave);
+    if (reduce) { tl.classList.add("cut", "dressed"); state.textContent = "finished edit, 00:43"; return; }
+    timers.push(setTimeout(() => { tl.classList.add("cut"); state.textContent = "cutting pauses and retakes"; }, 900));
+    timers.push(setTimeout(() => { tl.classList.add("dressed"); state.textContent = "adding captions and motion"; requestAnimationFrame(wave); }, 2300));
+    timers.push(setTimeout(() => { tl.classList.add("play"); state.textContent = "checking every frame"; }, 3400));
+    timers.push(setTimeout(() => { state.textContent = "finished edit, 00:43"; }, 6700));
+  }
+  let started = false;
+  new IntersectionObserver((es, o) => { if (es[0].isIntersecting && !started) { started = true; run(); o.disconnect(); } }, { threshold: 0.4 }).observe(tl);
+  document.getElementById("replay").addEventListener("click", run);
+  addEventListener("resize", () => requestAnimationFrame(wave));
+  wave();
+
+  // Example videos load and play only while on screen.
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    const v = e.target;
+    if (e.isIntersecting) { if (v.preload === "none") v.preload = "auto"; if (!reduce) v.play().catch(() => {}); }
+    else v.pause();
+  }), { threshold: 0.35 });
+  document.querySelectorAll("video[data-lazy]").forEach(v => io.observe(v));
+  const hero = document.getElementById("hero-video");
+  if (reduce) { hero.removeAttribute("autoplay"); hero.pause(); hero.controls = true; }
+
+  // Sound toggle for the hero video.
+  const sound = document.getElementById("sound");
+  sound.addEventListener("click", () => {
+    hero.muted = !hero.muted; if (!hero.muted) hero.play().catch(() => {});
+    sound.textContent = hero.muted ? "Sound on" : "Sound off"; sound.setAttribute("aria-pressed", String(!hero.muted));
+  });
+
+  // Copy buttons.
+  document.querySelectorAll(".copy").forEach(b => b.addEventListener("click", async () => {
+    const text = document.getElementById(b.dataset.copy).innerText.replace(/\s+#.*$/gm, "");
+    try { await navigator.clipboard.writeText(text); b.textContent = "Copied"; } catch { b.textContent = "Select and copy"; }
+    setTimeout(() => (b.textContent = "Copy"), 1800);
+  }));
+})();
+</script>
+</body>
+</html>

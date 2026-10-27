@@ -1,17 +1,14 @@
 ---
 name: video-editing-god-mode
-description: CLAUDE VIDEO EDITING GOD MODE hub. Use when someone wants Claude to edit a video end to end, turn raw talking-head footage into a reel, Short or long-form video, set up the phone-to-PC editing pipeline, deploy the God Mode Cut PWA (uploads, approvals, client review, Buffer scheduling), teach Claude a brand's editing taste, or asks which video skill to use. Routes to the right editing skill and enforces the house rules.
+description: CLAUDE VIDEO EDITING GOD MODE hub. Use when someone wants Claude to edit a video end to end, turn raw talking-head footage into a reel, Short or long-form video, make a motion-graphics film, list or ranking video, packaging (titles, thumbnails), sound design, copy a trending reel's style, teach Claude a brand's editing taste, or asks which video skill to use. Routes to the right editing skill and enforces the house rules.
 ---
 
 # Claude Video Editing God Mode
 
-One workspace that turns raw footage into finished, captioned, motion-graphics videos, plus a phone app
-that feeds it work and sends finished edits back for review and scheduling.
+One workspace that turns raw footage into finished, captioned, motion-graphics videos on your own computer.
 
 ```
-Phone (God Mode Cut PWA)  ->  Supabase job  ->  app/bridge on the editing PC  ->  this workspace
-      ^                                                                              |
-      +---------- versions, client review, approvals, Buffer scheduling <-----------+
+Raw footage (or a watched folder)  ->  transcript  ->  the right skill  ->  render  ->  checked, finished video
 ```
 
 ## Step 0: work out what the person wants
@@ -20,18 +17,33 @@ Ask at most two questions, then route:
 
 | They want | Use |
 | --- | --- |
-| A reel, YouTube Short, TikTok or short ad from talking-head footage | `short-form-edit` |
+| A reel, YouTube Short, TikTok or short ad from talking-head footage | `short-form-edit` (or `ghost-editor` for a full phone-reel pipeline) |
+| Hooks, pacing and loops that hold attention in a short | `short-form-retention`, `short-form-video` |
+| Copy the editing style of a trending reel onto their footage | `trend-style-copy` |
+| Break down why a viral video works (shot list, structure, brief) | `video-structure-analyzer` |
 | A full long-form (16:9) edit | `edit-video` |
+| An editor's judgment on cuts, pacing, audio levels, captions, color | `editing-videos` |
 | Only cut dead air | `cut-silences` |
 | Only remove stutters, false starts, retakes | `cut-mistakes` |
+| Punch-zooms and slow pushes on a flat talking head | `add-zooms` |
+| Animated name tags and broadcast titles | `lower-thirds` |
 | A long-form video whose graphics feel like one world | `video-storytelling` + `hyperframes-video-beats` |
+| A top-10, "types of", or 0-10 rating video | `ranked-list` |
+| An S-to-F tier list video | `tier-list` |
+| A local-business makeover episode (before, step board, website reveal) | `business-makeover` |
+| Contractor and trades videos | `contractor-styles` |
+| Real estate listing tours and agent reels | `real-estate-styles` |
+| A premium commercial for a business | `business-motion-film` |
+| Launch videos, product promos, kinetic type, brand stings | `motionmaxxing`, `motion-showreel` |
+| A short film made entirely in code, in an art style | `lemo-opuscar` |
+| A paper-collage explainer | `collage` |
+| Sound design with real recorded sound effects | `real-sfx` |
+| YouTube titles, thumbnails and description | `youtube-packaging` |
 | A video from scratch, no footage, beginner | `make-a-video` |
-| A 10-30 s brand reel or motion showreel | `motion-showreel` |
 | A video from a website | `website-to-hyperframes` |
 | Pick or extend a visual style | `style-library` |
 | Write or fix a HyperFrames composition | `hyperframes`, `hyperframes-cli`, `hyperframes-registry`, `gsap` |
-| Phone uploads, approvals, client portal, scheduling | the PWA in `app/` (see `app/README.md`) |
-| Unattended edits from a watched folder | `scripts/drive-inbox.mjs` (see "Phone pipeline" below) |
+| Unattended edits from a watched folder | `scripts/drive-inbox.mjs` (see "Watched folder" below) |
 
 ## House rules (apply to every edit)
 
@@ -54,13 +66,11 @@ Ask at most two questions, then route:
 Copy `CLAUDE.local.example.md` to `CLAUDE.local.md` (Git ignores it) and write your own rules there: who the videos
 are for, default look, audio, head pop-out method, which tools are allowed. Claude Code loads it automatically.
 
-## Phone pipeline
+## Watched folder
 
-1. Deploy the PWA: `app/docs/DEPLOYMENT.md` (Supabase + Cloudflare Workers, free tiers work).
-2. On the editing PC, set `HERK_DRIVE_ROOT` in `.env` to a local inbox folder and install the bridge:
-   `app/bridge/README.md` (`npm run bridge:dry` first).
-3. Uploads become jobs. Jobs pass the approval gate. The bridge drops clips into the inbox, `scripts/drive-inbox.mjs`
-   runs the edit with `claude -p`, and finished options come back to the app as versions for review.
+Set `HERK_DRIVE_ROOT` in `.env` to a local folder (or a synced Google Drive / Dropbox folder). Drop clips into its
+inbox with a short note, run `npm run inbox`, and `scripts/drive-inbox.mjs` runs each edit with `claude -p` and
+writes the finished options next to the clips.
 
 ## Companion God Modes
 

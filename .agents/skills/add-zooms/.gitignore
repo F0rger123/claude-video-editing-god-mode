@@ -1,0 +1,19 @@
+# never commit footage / renders / transcripts
+*.mp4
+*.mov
+*.MP4
+*.MOV
+*.wav
+*.mp3
+audio.json
+*.filter.txt
+zoom_work/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# os
+.DS_Store

@@ -1,0 +1,12 @@
+{
+  "name": "ghost-shaders",
+  "private": true,
+  "version": "0.3.0",
+  "type": "module",
+  "description": "Rebuilds templates/vendor/hf-paper.js (Paper Shaders + the HyperFrames seek driver). Not needed to use the skill.",
+  "dependencies": {
+    "@paper-design/shaders": "0.0.81",
+    "@paper-design/shaders-react": "0.0.81",
+    "esbuild": "0.28.2"
+  }
+}

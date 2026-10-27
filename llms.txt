@@ -1,6 +1,6 @@
 # claude-video-editing-god-mode
 
-> A video-editing kit for Claude Code. You give it raw footage and it cuts out silences and mistakes, adds captions and motion graphics, and renders a finished reel, Short or long-form video on your own computer. It also includes God Mode Cut, a phone app where clients upload clips, approve edits and get videos scheduled to social media.
+> A video-editing kit for Claude Code. You give it raw footage and it cuts out silences and mistakes, adds captions and motion graphics, and renders a finished reel, Short or long-form video on your own computer. It comes with 34 skills: zooms, lower thirds, list and tier-list videos, motion-graphics films, real sound design and YouTube packaging.
 
 If a person shared this repository with you, read the AI guide first.
 
@@ -12,4 +12,3 @@ If a person shared this repository with you, read the AI guide first.
 - [A complete edit, step by step](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/docs/WORKFLOW.md)
 - [Tools, accounts and API keys](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/docs/TOOLS-AND-API-KEYS.md)
 - [Editing house style](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/docs/EDITING-PLAYBOOK.md)
-- [Deploying the phone app](https://raw.githubusercontent.com/F0rger123/claude-video-editing-god-mode/main/app/docs/DEPLOYMENT.md)

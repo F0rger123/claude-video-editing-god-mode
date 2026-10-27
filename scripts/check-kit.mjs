@@ -43,14 +43,20 @@ for (const style of registry.styles) for (const card of style.cards) {
 if (cards !== registry.cardCount) fail('Registry count is stale');
 for (const p of files) {
   const rel = relative(root,p).replaceAll('\\','/');
-  if (/\.(mp4|mov|wav|mp3|m4a|zip|pyc|pem|key)$/i.test(p) && !publicMedia.has(rel)) fail(`Private/binary material in distribution: ${rel}`);
+  // The editing-videos sound library is CC0, file by file (see its library/LICENSES.md).
+  // Landing-page copies of the approved showcase videos above.
+  const siteMedia = /^site\/media\/(raw-vs-edited|reveal|live-ad|showreel)\.mp4$/.test(rel);
+  const cc0Library = /^\.(claude|agents)\/skills\/editing-videos\/library\/(sfx|music)\/[^/]+\.(wav|mp3)$/i.test(rel);
+  if (/\.(mp4|mov|wav|mp3|m4a|zip|pyc|pem|key)$/i.test(p) && !publicMedia.has(rel) && !cc0Library && !siteMedia) fail(`Private/binary material in distribution: ${rel}`);
   const bytes=readFileSync(p); if(bytes.includes(0)) continue;
   const text=bytes.toString('utf8');
   // Report locations, never the value of a suspected credential.
   if (/(?:sk-[A-Za-z0-9]{20,}|gh[pous]_[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY)/.test(text)) fail(`Possible credential: ${rel}`);
   if (/(?:[A-Z]:[\\/](?:Users|home)[\\/]|\/Users\/|\/home\/[a-z])/.test(text)) fail(`Machine-specific path: ${rel}`);
   if (/\.(mjs|js)$/.test(p)) {
-    const check=spawnSync(process.execPath,['--check',p],{encoding:'utf8'});
+    let check=spawnSync(process.execPath,['--check',p],{encoding:'utf8'});
+    // Browser modules (plain .js with import/export) are checked as ES modules.
+    if(check.status !== 0 && /Cannot use import statement|Unexpected token 'export'/.test(check.stderr)) check=spawnSync(process.execPath,['--input-type=module','--check','-'],{encoding:'utf8',input:text});
     if(check.status !== 0) fail(`Syntax error: ${rel}\n${check.stderr}`);
   }
   if (p.endsWith('SKILL.md')) {
