@@ -1,5 +1,5 @@
 <p align="center">
-  <img src=".github/assets/banner.svg" alt="Video God Mode: Raw footage in. Finished, approved reels out." width="100%">
+  <img src=".github/assets/banner.svg" alt="Video God Mode: Raw footage in. Finished, captioned video out." width="100%">
 </p>
 
 <p align="center">
@@ -92,7 +92,7 @@ flowchart LR
 ## 04 · Which skill runs
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#121212','primaryTextColor':'#f4f4f2','primaryBorderColor':'#8b5cf6','lineColor':'#d946ef','secondaryColor':'#1c1c1c','tertiaryColor':'#080808','clusterBkg':'transparent','clusterBorder':'#8b5cf6','fontFamily':'inherit'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#121212','primaryTextColor':'#f4f4f2','primaryBorderColor':'#8b5cf6','lineColor':'#d946ef','secondaryColor':'#1c1c1c','tertiaryColor':'#080808','clusterBkg':'transparent','clusterBorder':'#8b5cf6','noteBkgColor':'#1c1c1c','noteTextColor':'#f4f4f2','actorBkg':'#121212','actorTextColor':'#f4f4f2','actorBorder':'#8b5cf6','signalColor':'#d946ef','signalTextColor':'#d946ef','labelBoxBkgColor':'#121212','fontFamily':'inherit'}}}%%
 flowchart LR
     A["You say what<br/>you want"] --> B{"What kind<br/>of video?"}
     B -->|talking head| C["Short reel or<br/>long-form edit"]
@@ -122,10 +122,10 @@ flowchart LR
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'pie1':'#8b5cf6','pie2':'#f97316','pie3':'#64748b','pie4':'#94a3b8','pie5':'#475569','pie6':'#cbd5e1','pie7':'#334155','pieStrokeColor':'#0d1117','pieOuterStrokeColor':'#0d1117','pieTitleTextColor':'#8b949e','pieLegendTextColor':'#8b949e','pieSectionTextColor':'#0d1117'}}}%%
 pie title Share of the code, by language
-    "HTML" : 78
-    "JavaScript" : 16
-    "Python" : 4
-    "Other" : 2
+    "Python" : 43.0
+    "HTML" : 38.0
+    "JavaScript" : 17.7
+    "Other" : 1.3
 ```
 
 <p align="center"><img src=".github/assets/divider.svg" width="100%" alt=""></p>
